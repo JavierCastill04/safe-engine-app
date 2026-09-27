@@ -1,11 +1,12 @@
 import { View, Text } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { commonStyles, colores } from "../../../theme";
 
 export default function ReportesScreen() {
     return (
         <SafeAreaView>
-            <View>
-                <Text>Bienvenido a Reportes</Text>
+            <View style={commonStyles.containerScreen}>
+                <Text style={{ color: colores.claro }}>Bienvenido a Reportes</Text>
             </View>
         </SafeAreaView>
     );
