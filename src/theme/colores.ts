@@ -1,0 +1,18 @@
+export const colores = {
+    fondo: '#252A2D',
+    superficie: '#FAF7F7',
+    primario: '#2F6F9F',
+    secundario: '#42576B',
+    enfasis: '#B80101',
+    enfasisHover: '#D52A2A',
+    claro: '#CFD8D7',
+    borde: '#A7ADB0',
+    texto: '#252A2D',
+    textoSecundario: '#42576B',
+    blanco: '#FAF7F7',
+    negro: '#000000',
+    rojo: '#B80101',
+    azul: '#2F6F9F',
+    azulClaro: '#85BAEA',
+    gris: '#A7ADB0',
+}; 
