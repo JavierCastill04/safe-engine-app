@@ -1,31 +1,36 @@
 import type { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
-import { colores } from '../theme';
+import { colores, tipografia } from '../theme';
 
-export const tabScreenOptions: BottomTabNavigationOptions = {
+export const getTabScreenOptions = (
+    bottomInset: number
+): BottomTabNavigationOptions => ({
     headerStyle: {
-        backgroundColor: colores.secundario,
+        backgroundColor: colores.negro,
     },
 
     headerTintColor: colores.enfasis,
 
     headerTitleStyle: {
-        fontWeight: '700',
+        fontFamily: "Poppins",
+        fontSize: 25
     },
 
-    tabBarActiveTintColor: colores.enfasis,
+    tabBarActiveTintColor: colores.texto,
     tabBarInactiveTintColor: colores.claro,
 
     tabBarStyle: {
         backgroundColor: colores.secundario,
-        borderTopWidth: 5,
-        borderColor: colores.secundario,
+        height: 65 + bottomInset,
+        paddingTop: 5,
     },
 
     tabBarLabelStyle: {
         fontSize: 12,
         fontWeight: '600',
+        marginTop: 2,
     },
+
     tabBarIconStyle: {
-        marginTop: -2,
+        marginTop: 1,
     },
-};
+});

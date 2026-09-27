@@ -1,5 +1,5 @@
 export const colores = {
-    fondo: '#252A2D',
+    fondo: '#000000',
     superficie: '#FAF7F7',
     primario: '#2F6F9F',
     secundario: '#42576B',
@@ -15,4 +15,4 @@ export const colores = {
     azul: '#2F6F9F',
     azulClaro: '#85BAEA',
     gris: '#A7ADB0',
-}; 
+};
