@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Car, Wrench, Gauge } from 'lucide-react-native';
-import { colores, tipografia } from '../../../theme';
-import { Vehiculo } from '@/types/Vehiculo';
+import { commonStyles, colores, espaciado } from '@/theme';
+import type { Vehiculo } from '@/types';
 import { formatearKilometraje, obtenerNombreCompletoVehiculo } from '../utils/VehiculosUtils';
 
 interface VehiculosCardProps {
@@ -20,34 +20,39 @@ export const VehiculosCard: React.FC<VehiculosCardProps> = ({
 }) => {
   return (
     <TouchableOpacity
-      style={[styles.card, esSeleccionado && styles.cardSeleccionado]}
+      style={[
+        commonStyles.card,
+        esSeleccionado && styles.cardSeleccionado,
+      ]}
       onPress={() => onSelect && onSelect(vehiculo.id)}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
     >
       <View style={styles.header}>
         <View style={styles.iconContainer}>
           <Car color={colores.enfasis} size={24} />
         </View>
         <View style={styles.headerText}>
-          <Text style={styles.titulo}>{obtenerNombreCompletoVehiculo(vehiculo)}</Text>
-          <Text style={styles.placa}>Placa: {vehiculo.placa}</Text>
+          <Text style={commonStyles.cardTitle}>
+            {obtenerNombreCompletoVehiculo(vehiculo)}
+          </Text>
+          <Text style={commonStyles.secondaryText}>Placa: {vehiculo.placa}</Text>
         </View>
       </View>
 
       <View style={styles.infoRow}>
-        <Gauge color={colores.claro} size={18} />
-        <Text style={styles.infoTexto}>
-          Kilometraje: {formatearKilometraje(vehiculo.kilometrajeActual)}
+        <Gauge color={colores.blanco} size={18} />
+        <Text style={commonStyles.text}>
+          {formatearKilometraje(vehiculo.kilometrajeActual)}
         </Text>
       </View>
 
       {onRegistrarMantenimiento && (
         <TouchableOpacity
-          style={styles.botonAccion}
+          style={[commonStyles.button, styles.btnAccion]}
           onPress={() => onRegistrarMantenimiento(vehiculo)}
         >
-          <Wrench color={colores.texto} size={16} />
-          <Text style={styles.textoBoton}>Registrar Mantenimiento</Text>
+          <Wrench color={colores.blanco} size={16} />
+          <Text style={commonStyles.buttonText}>Registrar Mantenimiento</Text>
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -55,62 +60,33 @@ export const VehiculosCard: React.FC<VehiculosCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colores.secundario,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
   cardSeleccionado: {
-    borderColor: colores.enfasis,
+    borderLeftColor: colores.primario,
+    borderLeftWidth: 6,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: espaciado.sm,
   },
   iconContainer: {
-    backgroundColor: colores.negro,
-    padding: 10,
+    backgroundColor: colores.superficie,
+    padding: espaciado.sm,
     borderRadius: 8,
-    marginRight: 12,
+    marginRight: espaciado.md,
   },
   headerText: {
     flex: 1,
   },
-  titulo: {
-    color: colores.texto,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  placa: {
-    color: colores.claro,
-    fontSize: 13,
-  },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    gap: espaciado.xs,
+    marginBottom: espaciado.md,
   },
-  infoTexto: {
-    color: colores.claro,
-    fontSize: 14,
-  },
-  botonAccion: {
-    backgroundColor: colores.enfasis,
+  btnAccion: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 8,
-  },
-  textoBoton: {
-    color: colores.texto,
-    fontWeight: '600',
-    fontSize: 14,
+    gap: espaciado.xs,
+    backgroundColor: colores.enfasis,
   },
 });

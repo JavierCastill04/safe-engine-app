@@ -16,3 +16,7 @@ export const obtenerEtiquetaTipo = (tipo: TipoMantenimiento): string => {
 export const formatearMoneda = (monto: number): string => {
   return `$${monto.toFixed(2)}`;
 };
+
+export const formatearKilometraje = (km: number): string => {
+  return `${km.toLocaleString()} km`;
+};
