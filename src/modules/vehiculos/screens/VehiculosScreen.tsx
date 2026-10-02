@@ -1,27 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { commonStyles, colores } from '../../../theme';
+import { commonStyles } from '@/theme';
 import { useAppSelector, useAppDispatch } from '@/redux/hooks';
-import { Vehiculo } from '@/types/Vehiculo';
 import { seleccionarVehiculo } from '@/redux/slices/vehiculoSlice';
+import type { Vehiculo } from '@/types';
 import { VehiculosCard } from '../components/VehiculosCard';
+import { MantenimientoFormModal } from '../../mantenimientos/components/MantenimientoFormModal';
 
 export default function VehiculosScreen() {
   const dispatch = useAppDispatch();
   const { vehiculos, vehiculoSeleccionadoId } = useAppSelector((state) => state.vehiculos);
 
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [vehiculoParaMantenimiento, setVehiculoParaMantenimiento] = useState<Vehiculo | null>(null);
+
   const handleSeleccionar = (id: string) => {
     dispatch(seleccionarVehiculo(id));
   };
 
-  const handleRegistrarMantenimiento = (vehiculo: Vehiculo) => {
-    // Próximo paso: Abrir modal o navegar a la pantalla de Mantenimientos pasándole el ID
-    console.log('Ir a registrar mantenimiento para:', vehiculo.placa);
+  const handleAbrirMantenimiento = (vehiculo: Vehiculo) => {
+    setVehiculoParaMantenimiento(vehiculo);
+    setModalVisible(true);
   };
 
   return (
     <View style={commonStyles.containerScreen}>
-      <Text style={styles.tituloHeader}>Vehículos Registrados</Text>
+      <Text style={commonStyles.title}>Vehículos Registrados</Text>
 
       <FlatList
         data={vehiculos}
@@ -31,23 +35,28 @@ export default function VehiculosScreen() {
             vehiculo={item}
             esSeleccionado={item.id === vehiculoSeleccionadoId}
             onSelect={handleSeleccionar}
-            onRegistrarMantenimiento={handleRegistrarMantenimiento}
+            onRegistrarMantenimiento={handleAbrirMantenimiento}
           />
         )}
         contentContainerStyle={styles.listContent}
       />
+
+      {vehiculoParaMantenimiento && (
+        <MantenimientoFormModal
+          visible={modalVisible}
+          vehiculoId={vehiculoParaMantenimiento.id}
+          kilometrajeActualVehiculo={vehiculoParaMantenimiento.kilometrajeActual}
+          onClose={() => {
+            setModalVisible(false);
+            setVehiculoParaMantenimiento(null);
+          }}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  tituloHeader: {
-    color: colores.texto,
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    marginTop: 8,
-  },
   listContent: {
     paddingBottom: 20,
   },
