@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAppSelector } from '@/redux/hooks';
 import { ProximosMantenimientosCard } from '@/modules/mantenimientos/components/ProximosMantenimientosCard';
-import { MantenimientoFormModal } from '@/modules/mantenimientos/components/MantenimientoFormModal'; // Ajusta la ruta si difiere
+import { MantenimientoFormModal } from '@/modules/mantenimientos/components/MantenimientoFormModal';
+import { ViajeTrackerModal } from '@/modules/odometro/components/viajeTrackerModal'; // Asegúrate de importar el modal de GPS
 import { commonStyles, colores, espaciado } from '@/theme';
 
 interface Props {
@@ -16,10 +17,11 @@ interface Props {
 export const VehiculoDetalleScreen: React.FC<Props> = ({ route }) => {
   const { vehiculoId } = route.params;
 
-  // Estado para controlar la visibilidad del modal
-  const [modalVisible, setModalVisible] = useState(false);
+  // Estados para controlar los modales
+  const [mantenimientoModalVisible, setMantenimientoModalVisible] = useState(false);
+  const [viajeModalVisible, setViajeModalVisible] = useState(false);
 
-  // 1. Obtener la información del vehículo y los mantenimientos
+  // 1. Obtener la información del vehículo y los mantenimientos desde Redux
   const vehiculo = useAppSelector((state) =>
     state.vehiculos.vehiculos.find((v) => v.id === vehiculoId)
   );
@@ -54,15 +56,28 @@ export const VehiculoDetalleScreen: React.FC<Props> = ({ route }) => {
         kilometrajeActual={vehiculo.kilometrajeActual}
       />
 
-      {/* Botón para abrir el Modal de Nuevo Mantenimiento */}
-      <TouchableOpacity
-        style={[commonStyles.surface, styles.btnAgregar]}
-        onPress={() => setModalVisible(true)}
-      >
-        <Text style={{ color: colores.primario, fontWeight: 'bold' }}>
-          + Registrar Nuevo Mantenimiento
-        </Text>
-      </TouchableOpacity>
+      {/* Botones de Acción */}
+      <View style={styles.accionesContainer}>
+        {/* Botón para Iniciar Viaje GPS */}
+        <TouchableOpacity
+          style={[commonStyles.surface, styles.btnAccion, styles.btnViaje]}
+          onPress={() => setViajeModalVisible(true)}
+        >
+          <Text style={{ color: colores.primario, fontWeight: 'bold' }}>
+            📍 Registrar Viaje (GPS)
+          </Text>
+        </TouchableOpacity>
+
+        {/* Botón para Registrar Nuevo Mantenimiento */}
+        <TouchableOpacity
+          style={[commonStyles.surface, styles.btnAccion]}
+          onPress={() => setMantenimientoModalVisible(true)}
+        >
+          <Text style={{ color: colores.primario, fontWeight: 'bold' }}>
+            + Registrar Mantenimiento
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Lista Historial de Mantenimientos */}
       <View style={styles.historialContainer}>
@@ -92,12 +107,20 @@ export const VehiculoDetalleScreen: React.FC<Props> = ({ route }) => {
         )}
       </View>
 
-      {/* Modal para registrar nuevos servicios */}
+      {/* Modal para registrar nuevos mantenimientos */}
       <MantenimientoFormModal
-        visible={modalVisible}
+        visible={mantenimientoModalVisible}
         vehiculoId={vehiculo.id}
         kilometrajeActualVehiculo={vehiculo.kilometrajeActual}
-        onClose={() => setModalVisible(false)}
+        onClose={() => setMantenimientoModalVisible(false)}
+      />
+
+      {/* Modal para registrar viajes por GPS */}
+      <ViajeTrackerModal
+        visible={viajeModalVisible}
+        vehiculoId={vehiculo.id}
+        kilometrajeActual={vehiculo.kilometrajeActual}
+        onClose={() => setViajeModalVisible(false)}
       />
     </ScrollView>
   );
@@ -107,11 +130,18 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: espaciado.md,
   },
-  btnAgregar: {
+  accionesContainer: {
+    marginVertical: espaciado.md,
+    gap: espaciado.sm,
+  },
+  btnAccion: {
     padding: espaciado.md,
     borderRadius: 8,
     alignItems: 'center',
-    marginVertical: espaciado.md,
+  },
+  btnViaje: {
+    borderWidth: 1,
+    borderColor: colores.primario,
   },
   historialContainer: {
     marginTop: espaciado.sm,
