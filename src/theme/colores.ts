@@ -15,4 +15,6 @@ export const colores = {
     azul: '#2F6F9F',
     azulClaro: '#85BAEA',
     gris: '#A7ADB0',
+    error: '#FC570F',
+    linea: '#0F3AFC',
 };
