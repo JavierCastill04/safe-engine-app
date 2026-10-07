@@ -6,7 +6,7 @@ import * as Location from 'expo-location';
 import { useAppDispatch } from '@/redux/hooks';
 import { actualizarKilometraje } from '@/redux/slices/vehiculoSlice';
 import { commonStyles, colores, espaciado } from '@/theme';
-import { calcularDistanciaKm } from '@/modules/odometro/utils/geoUtils';
+import { calcularDistanciaMetros} from '@/modules/odometro/utils/geoUtils';
 
 interface Props {
   visible: boolean;
@@ -48,7 +48,7 @@ export const ViajeTrackerModal: React.FC<Props> = ({
       },
       (location) => {
         if (ultimaUbicacion.current) {
-          const delta = calcularDistanciaKm(
+          const delta = calcularDistanciaMetros(
             ultimaUbicacion.current.coords.latitude,
             ultimaUbicacion.current.coords.longitude,
             location.coords.latitude,

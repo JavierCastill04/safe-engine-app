@@ -8,8 +8,9 @@ export type RootStackParamList = {
 };
 
 export type TabNavigatorParamList = {
-    Home: undefined;
-    Vehiculos: undefined;
-    Notificaciones: undefined;
-    Ajustes: undefined;
+  Home: undefined;
+  Vehiculos: undefined;
+  Odometro: undefined;
+  Notificaciones: undefined;
+  Ajustes: undefined;
 };
