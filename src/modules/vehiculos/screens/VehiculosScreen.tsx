@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { actualizarKilometraje } from '@/redux/slices/vehiculoSlice';
-import { VehiculoFormModal } from '@/modules/vehiculos/components/VehiculosFormModal';
+import { VehiculoFormModal } from '../components/VehiculosFormModal';
 import { MantenimientoFormModal } from '@/modules/mantenimientos/components/MantenimientoFormModal';
 import { commonStyles, colores, espaciado } from '@/theme';
 
@@ -27,27 +27,17 @@ export const VehiculosScreen = ({ navigation }: any) => {
   // Unidad de simulación para pruebas
   const [unidadPrueba, setUnidadPrueba] = useState<'metros' | 'millas'>('millas');
 
-  // Incrementar odómetro manualmente para pruebas
   const SIMULAR_INCREMENTO = (vehiculoId: string, kilometrajeActual: number, cantidad: number) => {
-    let kmAumento = 0;
-    if (unidadPrueba === 'metros') {
-      kmAumento = cantidad / 1000;
-    } else {
-      kmAumento = cantidad * 1.60934;
-    }
-
+    let kmAumento = unidadPrueba === 'metros' ? cantidad / 1000 : cantidad * 1.60934;
     const nuevoKm = Math.round(kilometrajeActual + kmAumento);
-
     dispatch(actualizarKilometraje({ id: vehiculoId, nuevoKilometraje: nuevoKm }));
   };
 
   return (
     <View style={commonStyles.containerScreen}>
-      {/* Encabezado y Selector de Pruebas */}
+      {/* Encabezado */}
       <View style={styles.headerRow}>
         <Text style={commonStyles.title}>Vehículos Registrados</Text>
-
-        {/* Botón Principal: + Agregar Vehículo */}
         <TouchableOpacity
           style={styles.btnAgregar}
           onPress={() => setModalAgregarVehiculo(true)}
@@ -56,43 +46,26 @@ export const VehiculosScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </View>
 
-      {/* Selector de Unidades para Pruebas del Odómetro */}
+      {/* Selector de Unidades */}
       <View style={styles.testBar}>
         <Text style={{ color: colores.textoSecundario, fontSize: 12 }}>
-          Simular Odómetro en:
+          Simular Odómetro:
         </Text>
         <View style={styles.switchContainer}>
           <TouchableOpacity
-            style={[
-              styles.switchBtn,
-              unidadPrueba === 'millas' && styles.switchBtnActive,
-            ]}
+            style={[styles.switchBtn, unidadPrueba === 'millas' && styles.switchBtnActive]}
             onPress={() => setUnidadPrueba('millas')}
           >
-            <Text
-              style={[
-                styles.switchText,
-                unidadPrueba === 'millas' && styles.switchTextActive,
-              ]}
-            >
-              Millas (mi)
+            <Text style={[styles.switchText, unidadPrueba === 'millas' && styles.switchTextActive]}>
+              Millas
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
-            style={[
-              styles.switchBtn,
-              unidadPrueba === 'metros' && styles.switchBtnActive,
-            ]}
+            style={[styles.switchBtn, unidadPrueba === 'metros' && styles.switchBtnActive]}
             onPress={() => setUnidadPrueba('metros')}
           >
-            <Text
-              style={[
-                styles.switchText,
-                unidadPrueba === 'metros' && styles.switchTextActive,
-              ]}
-            >
-              Metros (m)
+            <Text style={[styles.switchText, unidadPrueba === 'metros' && styles.switchTextActive]}>
+              Metros
             </Text>
           </TouchableOpacity>
         </View>
@@ -102,7 +75,6 @@ export const VehiculosScreen = ({ navigation }: any) => {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {vehiculos.map((v) => (
           <View key={v.id} style={[commonStyles.surface, styles.cardVehiculo]}>
-            {/* Header de la tarjeta */}
             <TouchableOpacity
               onPress={() =>
                 navigation.navigate('VehiculoDetalleScreen', { vehiculoId: v.id })
@@ -120,8 +92,6 @@ export const VehiculosScreen = ({ navigation }: any) => {
                 <Text style={styles.odometroText}>
                   ⏱ Odómetro: {v.kilometrajeActual.toLocaleString()} km
                 </Text>
-
-                {/* Mostrar equivalente de prueba */}
                 <Text style={styles.odometroSubtext}>
                   (
                   {unidadPrueba === 'millas'
@@ -132,18 +102,14 @@ export const VehiculosScreen = ({ navigation }: any) => {
               </View>
             </TouchableOpacity>
 
-            {/* Controles del Odómetro para Pruebas Rápidas */}
+            {/* Controles de prueba */}
             <View style={styles.odometroControls}>
               <Text style={styles.controlTitle}>Simular recorrido:</Text>
               <View style={styles.btnRow}>
                 <TouchableOpacity
                   style={styles.btnIncremento}
                   onPress={() =>
-                    SIMULAR_INCREMENTO(
-                      v.id,
-                      v.kilometrajeActual,
-                      unidadPrueba === 'metros' ? 100 : 1
-                    )
+                    SIMULAR_INCREMENTO(v.id, v.kilometrajeActual, unidadPrueba === 'metros' ? 100 : 1)
                   }
                 >
                   <Text style={styles.btnIncrementoText}>
@@ -154,11 +120,7 @@ export const VehiculosScreen = ({ navigation }: any) => {
                 <TouchableOpacity
                   style={styles.btnIncremento}
                   onPress={() =>
-                    SIMULAR_INCREMENTO(
-                      v.id,
-                      v.kilometrajeActual,
-                      unidadPrueba === 'metros' ? 500 : 10
-                    )
+                    SIMULAR_INCREMENTO(v.id, v.kilometrajeActual, unidadPrueba === 'metros' ? 500 : 10)
                   }
                 >
                   <Text style={styles.btnIncrementoText}>
@@ -168,32 +130,43 @@ export const VehiculosScreen = ({ navigation }: any) => {
               </View>
             </View>
 
-            {/* Botón para Registrar Mantenimiento */}
-            <TouchableOpacity
-              style={styles.btnMantenimiento}
-              onPress={() =>
-                setModalMantenimiento({
-                  visible: true,
-                  vehiculoId: v.id,
-                  kmActual: v.kilometrajeActual,
-                })
-              }
-            >
-              <Text style={styles.btnMantenimientoTexto}>
-                🔧 Registrar Mantenimiento
-              </Text>
-            </TouchableOpacity>
+            {/* BOTONES DE ACCIÓN: REGISTRAR E HISTORIAL */}
+            <View style={styles.accionesRow}>
+              <TouchableOpacity
+                style={[styles.btnAccion, styles.btnRegistrar]}
+                onPress={() =>
+                  setModalMantenimiento({
+                    visible: true,
+                    vehiculoId: v.id,
+                    kmActual: v.kilometrajeActual,
+                  })
+                }
+              >
+                <Text style={styles.btnTexto}>🔧 Registrar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.btnAccion, styles.btnHistorial]}
+                onPress={() =>
+                  navigation.navigate('HistorialMantenimientoScreen', {
+                    vehiculoId: v.id,
+                    vehiculoNombre: `${v.marca} ${v.modelo}`,
+                  })
+                }
+              >
+                <Text style={styles.btnTexto}>📋 Historial</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ))}
       </ScrollView>
 
-      {/* Modal para Agregar Vehículo Nuevo */}
+      {/* Modales */}
       <VehiculoFormModal
         visible={modalAgregarVehiculo}
         onClose={() => setModalAgregarVehiculo(false)}
       />
 
-      {/* Modal para Registrar Mantenimiento */}
       {modalMantenimiento.visible && (
         <MantenimientoFormModal
           visible={modalMantenimiento.visible}
@@ -207,6 +180,8 @@ export const VehiculosScreen = ({ navigation }: any) => {
     </View>
   );
 };
+
+export default VehiculosScreen;
 
 const styles = StyleSheet.create({
   headerRow: {
@@ -306,14 +281,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  btnMantenimiento: {
-    backgroundColor: '#DC2626',
+  accionesRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+  btnAccion: {
+    flex: 1,
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 6,
   },
-  btnMantenimientoTexto: {
+  btnRegistrar: {
+    backgroundColor: '#DC2626',
+  },
+  btnHistorial: {
+    backgroundColor: '#2563EB',
+  },
+  btnTexto: {
     color: '#FFF',
     fontWeight: 'bold',
   },

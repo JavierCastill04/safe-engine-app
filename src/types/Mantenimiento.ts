@@ -13,6 +13,10 @@ export interface Mantenimiento {
   tipo: TipoMantenimiento;
   costo: number;
   notas?: string;
+  descripcion?: string;
+  kilometrajeRealiz?: number; // Kilometraje real al momento del mantenimiento
+  kilometrajeActual?: number; // Kilometraje actual del vehículo al momento del mantenimiento
+
   
   // Detalles específicos según tipo de mantenimiento
   detallesEspecificos: {
