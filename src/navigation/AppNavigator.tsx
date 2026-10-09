@@ -3,6 +3,7 @@ import LoginScreen from '../modules/auth/screens/LoginScreen';
 import RegisterScreen from '../modules/auth/screens/RegisterScreen';
 import OdometroScreen from '../modules/odometro/screens/OdometroScreen';
 import ReportesScreen from '../modules/reportes/screens/ReportesScreen';
+import HistorialMantenimientoScreen from '../modules/mantenimientos/screens/HistorialMantenimientosScreen';
 import TabNavigator from './TabNavigator';
 import type { RootStackParamList } from './types';
 
@@ -16,6 +17,13 @@ export default function AppNavigator() {
             <Stack.Screen name="Odometro" component={OdometroScreen} options={{ headerShown: false, animation: "slide_from_right" }} />
             <Stack.Screen name="Reportes" component={ReportesScreen} options={{ headerShown: false, animation: "slide_from_right" }} />
             <Stack.Screen name="TabNavigator" component={TabNavigator} options={{ headerShown: false, animation: "slide_from_right" }} />
+            
+            {/* 👇 2. AGREGAR LA PANTALLA AQUÍ */}
+            <Stack.Screen 
+              name="HistorialMantenimientoScreen" 
+              component={HistorialMantenimientoScreen} 
+              options={{ headerShown: false, animation: "slide_from_right" }} 
+            />
         </Stack.Navigator>
     );
 }
