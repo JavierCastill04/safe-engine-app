@@ -1,84 +1,98 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { shallowEqual } from 'react-redux';
 import { useAppSelector } from '@/redux/hooks';
 import { commonStyles, colores, espaciado } from '@/theme';
 
-
 export const HistorialMantenimientoScreen = ({ route, navigation }: any) => {
+  const insets = useSafeAreaInsets();
   const { vehiculoId, vehiculoNombre } = route.params || {};
 
-  // Filtrar los mantenimientos pertenecientes a este vehículo en específico
-  const mantenimientos = useAppSelector((state) =>
-    state.mantenimientos.mantenimientos.filter((m: any) => m.vehiculoId === vehiculoId)
+  // Obtener mantenimientos con memoización de referencia
+  const mantenimientos = useAppSelector(
+    (state) =>
+      state.mantenimientos.mantenimientos.filter(
+        (m: any) => m.vehiculoId === vehiculoId
+      ),
+    shallowEqual
   );
 
   return (
-    <View style={commonStyles.containerScreen}>
-      {/* Botón superior para regresar a Vehículos */}
-      <TouchableOpacity 
-        style={styles.btnRegresar} 
-        onPress={() => navigation.goBack()}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.btnRegresarTexto}>← Regresar a Vehículos</Text>
-      </TouchableOpacity>
-
+    <View style={[commonStyles.containerScreen, { paddingTop: insets.top + espaciado.sm }]}>
+      {/* Encabezado Fijo */}
       <Text style={commonStyles.title}>Historial de Mantenimientos</Text>
       {vehiculoNombre ? (
         <Text style={styles.subtitulo}>Vehículo: {vehiculoNombre}</Text>
       ) : null}
 
-      {mantenimientos.length === 0 ? (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTexto}>
-            No hay registros de mantenimiento guardados para este vehículo.
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={mantenimientos}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-          renderItem={({ item }: { item: any }) => (
-            <View style={[commonStyles.surface, styles.cardHistorial]}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.tipoMantenimiento}>
-                  {item.tipo || item.titulo || 'Mantenimiento General'}
-                </Text>
-                <Text style={styles.fecha}>
-                  {item.fecha || new Date().toLocaleDateString()}
-                </Text>
-              </View>
-
-              <Text style={styles.descripcion}>
-                {item.descripcion || item.notas || 'Sin detalle registrado.'}
-              </Text>
-
-              {/* Snapshot del estado del vehículo */}
-              <View style={styles.snapshotBox}>
-                <Text style={styles.snapshotTitulo}>📌 Datos guardados al registrar:</Text>
-                <Text style={styles.snapshotItem}>
-                  • Kilometraje:{' '}
-                  <Text style={styles.bold}>
-                    {(
-                      item.kilometrajeRealiz ??
-                      item.kilometrajeActual ??
-                      item.kilometraje ??
-                      0
-                    ).toLocaleString()}{' '}
-                    km
+      {/* Lista Desplazable con Scrollbar Vertical */}
+      <View style={styles.listaContainer}>
+        {mantenimientos.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTexto}>
+              No hay registros de mantenimiento guardados para este vehículo.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={mantenimientos}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={true}
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item }: { item: any }) => (
+              <View style={[commonStyles.surface, styles.cardHistorial]}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.tipoMantenimiento}>
+                    {item.tipo || item.titulo || 'Mantenimiento General'}
                   </Text>
+                  <Text style={styles.fecha}>
+                    {item.fecha || new Date().toLocaleDateString()}
+                  </Text>
+                </View>
+
+                <Text style={styles.descripcion}>
+                  {item.descripcion || item.notas || 'Sin detalle registrado.'}
                 </Text>
-                {item.costo ? (
+
+                <View style={styles.snapshotBox}>
+                  <Text style={styles.snapshotTitulo}>
+                    📌 Datos guardados al registrar:
+                  </Text>
                   <Text style={styles.snapshotItem}>
-                    • Costo: <Text style={styles.bold}>${item.costo}</Text>
+                    • Kilometraje:{' '}
+                    <Text style={styles.bold}>
+                      {(
+                        item.kilometrajeRealiz ??
+                        item.kilometrajeActual ??
+                        item.kilometraje ??
+                        0
+                      ).toLocaleString()}{' '}
+                      km
+                    </Text>
                   </Text>
-                ) : null}
+                  {item.costo ? (
+                    <Text style={styles.snapshotItem}>
+                      • Costo: <Text style={styles.bold}>${item.costo}</Text>
+                    </Text>
+                  ) : null}
+                </View>
               </View>
-            </View>
-          )}
-        />
-      )}
+            )}
+          />
+        )}
+      </View>
+
+      {/* Botón Fijo en el Pie de Pantalla */}
+      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, espaciado.md) }]}>
+        <TouchableOpacity
+          style={styles.btnRegresarBottom}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.btnRegresarTexto}>← Regresar a Vehículos</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -86,23 +100,17 @@ export const HistorialMantenimientoScreen = ({ route, navigation }: any) => {
 export default HistorialMantenimientoScreen;
 
 const styles = StyleSheet.create({
-  btnRegresar: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#1E293B',
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    marginBottom: espaciado.md,
-  },
-  btnRegresarTexto: {
-    color: '#38BDF8',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
   subtitulo: {
     color: colores.textoSecundario,
     fontSize: 15,
-    marginBottom: espaciado.md,
+    marginBottom: espaciado.sm,
+  },
+  listaContainer: {
+    flex: 1, // Toma todo el espacio vertical disponible para permitir scroll
+  },
+  listContent: {
+    gap: espaciado.md,
+    paddingBottom: espaciado.md,
   },
   emptyBox: {
     padding: espaciado.xl,
@@ -112,10 +120,6 @@ const styles = StyleSheet.create({
     color: colores.textoSecundario,
     textAlign: 'center',
     fontSize: 14,
-  },
-  listContainer: {
-    gap: espaciado.md,
-    paddingBottom: espaciado.xl,
   },
   cardHistorial: {
     padding: espaciado.md,
@@ -160,5 +164,23 @@ const styles = StyleSheet.create({
   bold: {
     fontWeight: 'bold',
     color: '#FFF',
+  },
+  bottomBar: {
+    paddingTop: espaciado.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#1E293B',
+    backgroundColor: 'transparent',
+  },
+  btnRegresarBottom: {
+    backgroundColor: '#2563EB',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnRegresarTexto: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
 });

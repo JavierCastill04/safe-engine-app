@@ -27,6 +27,12 @@ const mantenimientoSlice = createSlice({
   name: 'mantenimientos',
   initialState,
   reducers: {
+
+    limpiarTodosLosMantenimientos: (state) => {
+  state.mantenimientos = [];
+},
+    
+
     agregarMantenimiento: (state, action: PayloadAction<Omit<Mantenimiento, 'id'>>) => {
       const nuevo: Mantenimiento = {
         ...action.payload,
@@ -40,5 +46,5 @@ const mantenimientoSlice = createSlice({
   },
 });
 
-export const { agregarMantenimiento, eliminarMantenimiento } = mantenimientoSlice.actions;
+export const { agregarMantenimiento, eliminarMantenimiento, limpiarTodosLosMantenimientos } = mantenimientoSlice.actions;
 export default mantenimientoSlice.reducer;

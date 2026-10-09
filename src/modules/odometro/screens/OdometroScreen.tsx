@@ -8,24 +8,27 @@ import {
   ScrollView,
 } from 'react-native';
 import * as Location from 'expo-location';
+import { Accelerometer } from 'expo-sensors';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { actualizarKilometraje } from '@/redux/slices/vehiculoSlice';
-import { calcularDistanciaMetros } from '../utils/geoUtils';
+import { esMovimientoValido } from '../utils/geoUtils';
 import { commonStyles, colores, espaciado } from '@/theme';
 
 export const OdometroScreen = () => {
   const dispatch = useAppDispatch();
   const vehiculos = useAppSelector((state) => state.vehiculos.vehiculos);
 
-  // Estados del rastreador GPS
+  // Estados del rastreador GPS y Sensores
   const [corriendo, setCorriendo] = useState(false);
   const [distanciaMetros, setDistanciaMetros] = useState(0);
   const [unidad, setUnidad] = useState<'metros' | 'millas'>('millas');
   const [vehiculoSeleccionadoId, setVehiculoSeleccionadoId] = useState<string>('');
+  const [estaEnMovimiento, setEstaEnMovimiento] = useState(true);
 
-  // Referencias para guardar la última ubicación y la suscripción GPS
+  // Referencias para guardar la última ubicación y las suscripciones
   const ultimaUbicacion = useRef<Location.LocationObject | null>(null);
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
+  const accelSubscription = useRef<any>(null);
 
   // Seleccionar primer vehículo por defecto
   useEffect(() => {
@@ -34,7 +37,32 @@ export const OdometroScreen = () => {
     }
   }, [vehiculos]);
 
-  // Manejar el rastreo por GPS
+  // Escuchar acelerómetro para detectar movimiento físico del vehículo/celular
+  useEffect(() => {
+    if (corriendo) {
+      Accelerometer.setUpdateInterval(500);
+      accelSubscription.current = Accelerometer.addListener(({ x, y, z }) => {
+        // Calcular magnitud de fuerza G (Gravedad pura = 1.0)
+        const magnitud = Math.sqrt(x * x + y * y + z * z);
+        const delta = Math.abs(magnitud - 1.0);
+        // Si el delta de aceleración supera 0.08, consideramos que hay vibración/movimiento
+        setEstaEnMovimiento(delta > 0.08);
+      });
+    } else {
+      if (accelSubscription.current) {
+        accelSubscription.current.remove();
+        accelSubscription.current = null;
+      }
+    }
+
+    return () => {
+      if (accelSubscription.current) {
+        accelSubscription.current.remove();
+      }
+    };
+  }, [corriendo]);
+
+  // Manejar el rastreo por GPS optimizado
   useEffect(() => {
     let active = true;
 
@@ -50,31 +78,51 @@ export const OdometroScreen = () => {
         return;
       }
 
-      // 2. Suscribirse a los cambios de posición GPS
+      // 2. Suscribirse con parámetros de alta fidelidad para navegación
       locationSubscription.current = await Location.watchPositionAsync(
         {
-          accuracy: Location.Accuracy.High,
-          distanceInterval: 3, // Actualiza cada vez que el dispositivo se mueva al menos 3 metros
-          timeInterval: 1000,   // O mínimo cada 1 segundo
+          accuracy: Location.Accuracy.BestForNavigation, // Máxima precisión GPS posible
+          distanceInterval: 3,                          // Intentar capturar tramos de mínimo 3 metros
+          timeInterval: 1500,                           // Evaluación cada 1.5s
         },
         (nuevaUbicacion) => {
           if (!active) return;
 
-          // Si hay una ubicación previa, calculamos el desplazamiento
+          // Si tenemos una coordenada previa, aplicamos los filtros de validación
           if (ultimaUbicacion.current) {
-            const { latitude: lat1, longitude: lon1 } = ultimaUbicacion.current.coords;
-            const { latitude: lat2, longitude: lon2 } = nuevaUbicacion.coords;
+            const puntoPrevio = {
+              latitude: ultimaUbicacion.current.coords.latitude,
+              longitude: ultimaUbicacion.current.coords.longitude,
+              accuracy: ultimaUbicacion.current.coords.accuracy,
+              timestamp: ultimaUbicacion.current.timestamp,
+            };
 
-            const metrosDesplazados = calcularDistanciaMetros(lat1, lon1, lat2, lon2);
+            const puntoNuevo = {
+              latitude: nuevaUbicacion.coords.latitude,
+              longitude: nuevaUbicacion.coords.longitude,
+              accuracy: nuevaUbicacion.coords.accuracy,
+              timestamp: nuevaUbicacion.timestamp,
+            };
 
-            // Filtrar lecturas irrelevantes o imprecisiones de señal (ruido GPS < 1 metro)
-            if (metrosDesplazados > 1) {
-              setDistanciaMetros((prev) => prev + metrosDesplazados);
+            // Filtrar ruido/fantasmeo usando geoUtils
+            const { esValido, distanciaMetros: metrosTramo } = esMovimientoValido(
+              puntoPrevio,
+              puntoNuevo,
+              {
+                distanciaMinimaMetros: 3,  // Ignora fluctuaciones estáticas menores a 3 metros
+                precisionMaximaMetros: 20, // Ignora señales GPS distorsionadas (> 20m de margen)
+                velocidadMaximaKmH: 200,   // Filtra saltos o teletransportaciones repentinas
+              }
+            );
+
+            if (esValido) {
+              setDistanciaMetros((prev) => prev + metrosTramo);
+              ultimaUbicacion.current = nuevaUbicacion; // Solo actualizamos punto previo cuando el movimiento fue válido
             }
+          } else {
+            // Primera coordenada registrada
+            ultimaUbicacion.current = nuevaUbicacion;
           }
-
-          // Guardar última coordenada registrada
-          ultimaUbicacion.current = nuevaUbicacion;
         }
       );
     };
@@ -82,7 +130,6 @@ export const OdometroScreen = () => {
     if (corriendo) {
       iniciarRastreoGPS();
     } else {
-      // Detener suscripción al pausar
       if (locationSubscription.current) {
         locationSubscription.current.remove();
         locationSubscription.current = null;
@@ -126,7 +173,6 @@ export const OdometroScreen = () => {
     const kmAdicionales = distanciaMetros / 1000;
     const nuevoKm = Math.round(vehiculo.kilometrajeActual + kmAdicionales);
 
-    // Despachar a Redux para actualizar la pantalla de vehículos
     dispatch(
       actualizarKilometraje({
         id: vehiculoSeleccionadoId,
@@ -148,8 +194,6 @@ export const OdometroScreen = () => {
 
   return (
     <View style={commonStyles.containerScreen}>
-      <Text style={commonStyles.title}>📡 Odómetro GPS en Vivo</Text>
-
       {/* Selector de Unidad */}
       <View style={styles.unidadContainer}>
         <TouchableOpacity
@@ -179,8 +223,11 @@ export const OdometroScreen = () => {
         <Text style={styles.displayEtiqueta}>
           {unidad === 'millas' ? 'Millas recorridas (GPS)' : 'Metros recorridos (GPS)'}
         </Text>
+
         {corriendo && (
-          <Text style={styles.statusGps}>🟢 Rastreo GPS Activo</Text>
+          <Text style={styles.statusGps}>
+            {estaEnMovimiento ? '🟢 Rastreo Activo (En movimiento)' : '🟡 Detenido (Esperando desplazamiento)'}
+          </Text>
         )}
       </View>
 

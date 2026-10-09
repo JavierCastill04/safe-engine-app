@@ -6,17 +6,22 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
+import { Plus } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { actualizarKilometraje } from '@/redux/slices/vehiculoSlice';
-import { VehiculoFormModal } from '../components/VehiculosFormModal';
+import { VehiculoFormModal } from '@/modules/vehiculos/components/VehiculosFormModal';
 import { MantenimientoFormModal } from '@/modules/mantenimientos/components/MantenimientoFormModal';
 import { commonStyles, colores, espaciado } from '@/theme';
+import { getColores } from '@/theme/colores';
 
 export const VehiculosScreen = ({ navigation }: any) => {
+  const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const vehiculos = useAppSelector((state) => state.vehiculos.vehiculos);
+  const temaActual = useAppSelector((state) => state.config?.tema || 'oscuro');
+  const palette = getColores(temaActual);
 
-  // Estados para modales
   const [modalAgregarVehiculo, setModalAgregarVehiculo] = useState(false);
   const [modalMantenimiento, setModalMantenimiento] = useState<{
     visible: boolean;
@@ -24,7 +29,6 @@ export const VehiculosScreen = ({ navigation }: any) => {
     kmActual: number;
   }>({ visible: false, vehiculoId: '', kmActual: 0 });
 
-  // Unidad de simulación para pruebas
   const [unidadPrueba, setUnidadPrueba] = useState<'metros' | 'millas'>('millas');
 
   const SIMULAR_INCREMENTO = (vehiculoId: string, kilometrajeActual: number, cantidad: number) => {
@@ -34,38 +38,32 @@ export const VehiculosScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={commonStyles.containerScreen}>
-      {/* Encabezado */}
+    <View style={[commonStyles.containerScreen, { backgroundColor: palette.fondo }]}>
+      {/* Encabezado limpio sin botón superior */}
       <View style={styles.headerRow}>
-        <Text style={commonStyles.title}>Vehículos Registrados</Text>
-        <TouchableOpacity
-          style={styles.btnAgregar}
-          onPress={() => setModalAgregarVehiculo(true)}
-        >
-          <Text style={styles.btnAgregarTexto}>+ Agregar</Text>
-        </TouchableOpacity>
+        <Text style={[commonStyles.title, { color: palette.texto }]}>Vehículos Registrados</Text>
       </View>
 
       {/* Selector de Unidades */}
-      <View style={styles.testBar}>
-        <Text style={{ color: colores.textoSecundario, fontSize: 12 }}>
-          Simular Odómetro:
+      <View style={[styles.testBar, { backgroundColor: palette.superficie }]}>
+        <Text style={{ color: palette.textoSecundario, fontSize: 12 }}>
+          Recorrido total del
         </Text>
         <View style={styles.switchContainer}>
           <TouchableOpacity
-            style={[styles.switchBtn, unidadPrueba === 'millas' && styles.switchBtnActive]}
+            style={[styles.switchBtn, unidadPrueba === 'millas' && { backgroundColor: palette.primario }]}
             onPress={() => setUnidadPrueba('millas')}
           >
             <Text style={[styles.switchText, unidadPrueba === 'millas' && styles.switchTextActive]}>
-              Millas
+              Milla
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.switchBtn, unidadPrueba === 'metros' && styles.switchBtnActive]}
+            style={[styles.switchBtn, unidadPrueba === 'metros' && { backgroundColor: palette.primario }]}
             onPress={() => setUnidadPrueba('metros')}
           >
             <Text style={[styles.switchText, unidadPrueba === 'metros' && styles.switchTextActive]}>
-              Metros
+              Metro
             </Text>
           </TouchableOpacity>
         </View>
@@ -74,25 +72,24 @@ export const VehiculosScreen = ({ navigation }: any) => {
       {/* Lista de Vehículos */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {vehiculos.map((v) => (
-          <View key={v.id} style={[commonStyles.surface, styles.cardVehiculo]}>
+          <View key={v.id} style={[commonStyles.surface, styles.cardVehiculo, { backgroundColor: palette.superficie }]}>
             <TouchableOpacity
               onPress={() =>
                 navigation.navigate('VehiculoDetalleScreen', { vehiculoId: v.id })
               }
             >
-              <Text style={styles.vehiculoNombre}>
+              <Text style={[styles.vehiculoNombre, { color: palette.texto }]}>
                 {v.marca} {v.modelo} ({v.anio || '2020'})
               </Text>
-              <Text style={{ color: colores.textoSecundario, marginBottom: 4 }}>
+              <Text style={{ color: palette.textoSecundario, marginBottom: 4 }}>
                 Placa: {v.placa}
               </Text>
 
-              {/* Odómetro Actual */}
               <View style={styles.odometroRow}>
-                <Text style={styles.odometroText}>
+                <Text style={[styles.odometroText, { color: palette.texto }]}>
                   ⏱ Odómetro: {v.kilometrajeActual.toLocaleString()} km
                 </Text>
-                <Text style={styles.odometroSubtext}>
+                <Text style={{ color: palette.textoSecundario, fontSize: 13 }}>
                   (
                   {unidadPrueba === 'millas'
                     ? `${(v.kilometrajeActual / 1.60934).toFixed(1)} mi`
@@ -102,9 +99,10 @@ export const VehiculosScreen = ({ navigation }: any) => {
               </View>
             </TouchableOpacity>
 
-            {/* Controles de prueba */}
             <View style={styles.odometroControls}>
-              <Text style={styles.controlTitle}>Simular recorrido:</Text>
+              <Text style={{ color: palette.textoSecundario, fontSize: 11, marginBottom: 4 }}>
+                Simular recorrido:
+              </Text>
               <View style={styles.btnRow}>
                 <TouchableOpacity
                   style={styles.btnIncremento}
@@ -130,7 +128,6 @@ export const VehiculosScreen = ({ navigation }: any) => {
               </View>
             </View>
 
-            {/* BOTONES DE ACCIÓN: REGISTRAR E HISTORIAL */}
             <View style={styles.accionesRow}>
               <TouchableOpacity
                 style={[styles.btnAccion, styles.btnRegistrar]}
@@ -147,12 +144,12 @@ export const VehiculosScreen = ({ navigation }: any) => {
 
               <TouchableOpacity
                 style={[styles.btnAccion, styles.btnHistorial]}
-                onPress={() =>
-                  navigation.navigate('HistorialMantenimientoScreen', {
+                onPress={() => {
+                  navigation.getParent()?.navigate('HistorialMantenimientoScreen', {
                     vehiculoId: v.id,
                     vehiculoNombre: `${v.marca} ${v.modelo}`,
-                  })
-                }
+                  });
+                }}
               >
                 <Text style={styles.btnTexto}>📋 Historial</Text>
               </TouchableOpacity>
@@ -160,6 +157,15 @@ export const VehiculosScreen = ({ navigation }: any) => {
           </View>
         ))}
       </ScrollView>
+
+      {/* BOTÓN FLOTANTE CIRCULAR (FAB) */}
+      <TouchableOpacity
+        style={[styles.fab, { bottom: insets.bottom + 20 }]}
+        onPress={() => setModalAgregarVehiculo(true)}
+        activeOpacity={0.8}
+      >
+        <Plus color="#FFFFFF" size={28} />
+      </TouchableOpacity>
 
       {/* Modales */}
       <VehiculoFormModal
@@ -185,26 +191,12 @@ export default VehiculosScreen;
 
 const styles = StyleSheet.create({
   headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: espaciado.sm,
-  },
-  btnAgregar: {
-    backgroundColor: colores.primario,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-  },
-  btnAgregarTexto: {
-    color: '#FFF',
-    fontWeight: 'bold',
   },
   testBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
     padding: espaciado.sm,
     borderRadius: 8,
     marginBottom: espaciado.md,
@@ -219,9 +211,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#334155',
   },
-  switchBtnActive: {
-    backgroundColor: colores.primario,
-  },
   switchText: {
     color: '#94A3B8',
     fontSize: 12,
@@ -231,7 +220,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   scrollContainer: {
-    paddingBottom: espaciado.xl,
+    paddingBottom: 80, // Margen suficiente para que la última tarjeta no tape el FAB
     gap: espaciado.md,
   },
   cardVehiculo: {
@@ -241,30 +230,19 @@ const styles = StyleSheet.create({
   vehiculoNombre: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colores.texto,
   },
   odometroRow: {
     marginVertical: 6,
   },
   odometroText: {
-    color: colores.texto,
     fontSize: 15,
     fontWeight: '600',
-  },
-  odometroSubtext: {
-    color: colores.textoSecundario,
-    fontSize: 13,
   },
   odometroControls: {
     backgroundColor: 'rgba(255,255,255,0.05)',
     padding: 8,
     borderRadius: 6,
     marginVertical: 8,
-  },
-  controlTitle: {
-    color: colores.textoSecundario,
-    fontSize: 11,
-    marginBottom: 4,
   },
   btnRow: {
     flexDirection: 'row',
@@ -301,5 +279,21 @@ const styles = StyleSheet.create({
   btnTexto: {
     color: '#FFF',
     fontWeight: 'bold',
+  },
+  /* ESTILOS DEL BOTÓN FLOTANTE (FAB) */
+  fab: {
+    position: 'absolute',
+    right: 20,
+    width: 58,
+    height: 58,
+    borderRadius: 29, // Hace la forma perfectamente circular
+    backgroundColor: '#2563EB', // Color azul vibrante
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6, // Sombra en Android
+    shadowColor: '#000', // Sombra en iOS
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.5,
   },
 });

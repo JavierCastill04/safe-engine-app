@@ -32,6 +32,12 @@ const vehiculoSlice = createSlice({
   name: 'vehiculos',
   initialState,
   reducers: {
+
+        // Dentro de reducers en vehiculoSlice.ts
+    limpiarTodosLosVehiculos: (state) => {
+      state.vehiculos = [];
+    },
+
     agregarVehiculo: (state, action: PayloadAction<Omit<Vehiculo, 'id'>>) => {
       const nuevo: Vehiculo = {
         ...action.payload,
@@ -54,7 +60,7 @@ const vehiculoSlice = createSlice({
   },
 });
 
-export const { agregarVehiculo, actualizarKilometraje, seleccionarVehiculo } =
+export const { agregarVehiculo, actualizarKilometraje, seleccionarVehiculo, limpiarTodosLosVehiculos } =
   vehiculoSlice.actions;
 
 export default vehiculoSlice.reducer;
