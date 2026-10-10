@@ -1,3 +1,4 @@
+
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { Vehiculo } from '@/types/Vehiculo';
 
@@ -32,35 +33,82 @@ const vehiculoSlice = createSlice({
   name: 'vehiculos',
   initialState,
   reducers: {
-
-        // Dentro de reducers en vehiculoSlice.ts
     limpiarTodosLosVehiculos: (state) => {
       state.vehiculos = [];
+      state.vehiculoSeleccionadoId = null;
     },
 
-    agregarVehiculo: (state, action: PayloadAction<Omit<Vehiculo, 'id'>>) => {
+    agregarVehiculo: (
+      state,
+      action: PayloadAction<Omit<Vehiculo, 'id'>>
+    ) => {
       const nuevo: Vehiculo = {
         ...action.payload,
         id: Date.now().toString(),
       };
+
       state.vehiculos.push(nuevo);
     },
-    actualizarKilometraje: (
+
+    actualizarVehiculo: (
       state,
-      action: PayloadAction<{ id: string; nuevoKilometraje: number }>
+      action: PayloadAction<Vehiculo>
     ) => {
-      const vehiculo = state.vehiculos.find((v) => v.id === action.payload.id);
-      if (vehiculo) {
-        vehiculo.kilometrajeActual = action.payload.nuevoKilometraje;
+      const indice = state.vehiculos.findIndex(
+        (vehiculo) => vehiculo.id === action.payload.id
+      );
+
+      if (indice !== -1) {
+        state.vehiculos[indice] = action.payload;
       }
     },
-    seleccionarVehiculo: (state, action: PayloadAction<string>) => {
+
+    eliminarVehiculo: (
+      state,
+      action: PayloadAction<string>
+    ) => {
+      state.vehiculos = state.vehiculos.filter(
+        (vehiculo) => vehiculo.id !== action.payload
+      );
+
+      if (state.vehiculoSeleccionadoId === action.payload) {
+        state.vehiculoSeleccionadoId = null;
+      }
+    },
+
+    actualizarKilometraje: (
+      state,
+      action: PayloadAction<{
+        id: string;
+        nuevoKilometraje: number;
+      }>
+    ) => {
+      const vehiculo = state.vehiculos.find(
+        (v) => v.id === action.payload.id
+      );
+
+      if (vehiculo) {
+        vehiculo.kilometrajeActual =
+          action.payload.nuevoKilometraje;
+      }
+    },
+
+    seleccionarVehiculo: (
+      state,
+      action: PayloadAction<string>
+    ) => {
       state.vehiculoSeleccionadoId = action.payload;
     },
   },
 });
 
-export const { agregarVehiculo, actualizarKilometraje, seleccionarVehiculo, limpiarTodosLosVehiculos } =
-  vehiculoSlice.actions;
+export const {
+  agregarVehiculo,
+  actualizarVehiculo,
+  eliminarVehiculo,
+  actualizarKilometraje,
+  seleccionarVehiculo,
+  limpiarTodosLosVehiculos,
+} = vehiculoSlice.actions;
 
 export default vehiculoSlice.reducer;

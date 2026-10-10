@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { Moon, Waves, ClipboardX, Trash2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { cambiarTema, TemaColor } from '@/redux/slices/configSlice';
@@ -85,8 +86,11 @@ export default function AjustesScreen() {
               temaActual === 'oscuro' && styles.btnTemaActivo,
             ]}
             onPress={() => handleCambiarTema('oscuro')}
+            accessibilityRole="button"
+            accessibilityLabel="Seleccionar tema oscuro"
+            accessibilityState={{ selected: temaActual === 'oscuro' }}
           >
-            <Text style={styles.btnTextoTema}>Oscuro (Negro)</Text>
+            <Moon color="#FFF" size={23} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -96,8 +100,11 @@ export default function AjustesScreen() {
               temaActual === 'azul' && styles.btnTemaActivo,
             ]}
             onPress={() => handleCambiarTema('azul')}
+            accessibilityRole="button"
+            accessibilityLabel="Seleccionar tema azul marino"
+            accessibilityState={{ selected: temaActual === 'azul' }}
           >
-            <Text style={styles.btnTextoTema}>Azul Marino</Text>
+            <Waves color="#FFF" size={23} />
           </TouchableOpacity>
         </View>
       </View>
@@ -114,16 +121,22 @@ export default function AjustesScreen() {
             style={styles.btnBorrarMantenimientos}
             onPress={handleBorrarMantenimientos}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Eliminar todos los mantenimientos"
+            accessibilityHint="Solicita confirmación antes de borrar los registros de mantenimiento"
           >
-            <Text style={styles.btnBorrarTexto}>Eliminar todos los mantenimientos               </Text>
+            <ClipboardX color="#FFF" size={24} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.btnBorrar}
             onPress={handleBorrarVehiculos}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Eliminar todos los vehículos"
+            accessibilityHint="Solicita confirmación antes de borrar todos los vehículos"
           >
-            <Text style={styles.btnBorrarTexto}>Eliminar todos los vehículos       </Text>
+            <Trash2 color="#FFF" size={24} />
           </TouchableOpacity>
         </View>
       </View>
@@ -133,7 +146,7 @@ export default function AjustesScreen() {
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingBottom: espaciado.xl,
+    paddingBottom: espaciado.xl + 24,
   },
   seccionBox: {
     padding: espaciado.md,
@@ -144,11 +157,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: colores.texto,
-    marginBottom: 4,
+    lineHeight: 24,
+    marginBottom: espaciado.sm,
   },
   seccionSubtitulo: {
     fontSize: 13,
     color: colores.textoSecundario,
+    lineHeight: 20,
     marginBottom: espaciado.md,
   },
   opcionesRow: {
@@ -157,9 +172,11 @@ const styles = StyleSheet.create({
   },
   btnTema: {
     flex: 1,
+    minHeight: 52,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -172,29 +189,23 @@ const styles = StyleSheet.create({
   btnTemaActivo: {
     borderColor: colores.primario,
   },
-  btnTextoTema: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
   accionesContainer: {
     gap: espaciado.sm,
   },
   btnBorrarMantenimientos: {
-    backgroundColor: '#D97706', // Color ámbar/naranja para diferenciar advertencia de mantenimientos
+    backgroundColor: '#D97706',
+    minHeight: 52,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   btnBorrar: {
-    backgroundColor: '#DC2626', // Color rojo para borrado crítico de vehículos
+    backgroundColor: '#DC2626',
+    minHeight: 52,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
-  },
-  btnBorrarTexto: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 14,
+    justifyContent: 'center',
   },
 });
