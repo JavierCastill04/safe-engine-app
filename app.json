@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "safe-engine-app",
@@ -10,6 +11,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.safeengine.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./src/assets/android-icon-foreground.png",
