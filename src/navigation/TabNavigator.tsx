@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Bell, Car, Settings, Home, Gauge } from 'lucide-react-native';
-import { useAppSelector } from '@/redux/hooks'; // 👈 1. Importar el hook de Redux
+import { useTheme } from '../hook/hooks'; // 👈 reemplaza al useAppSelector del tema
 import type { TabNavigatorParamList, RootStackParamList } from './types';
 import { getTabScreenOptions } from './navigationStyles';
 import HomeScreen from '../modules/home/screens/HomeScreen';
@@ -18,14 +18,13 @@ export default function PersonalNavigator() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { bottom } = useSafeAreaInsets();
 
-
-  const tema = useAppSelector((state) => state.config?.tema || 'oscuro');
+  const { colores } = useTheme(); // 👈 paleta activa (modo + acento)
 
   return (
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={({ route }) => ({
-        ...getTabScreenOptions(bottom, tema), // 👈 3. Pasar el tema activo
+        ...getTabScreenOptions(bottom, colores), // 👈 pasa los colores, no el nombre del tema
         tabBarIcon: ({ color, size }) => {
           switch (route.name) {
             case 'Home': return <Home color={color} size={size} />;

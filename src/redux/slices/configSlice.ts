@@ -1,24 +1,29 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { Acento, Modo } from '@/theme/themeA';
 
-export type TemaColor = 'oscuro' | 'azul';
-
-interface ConfigState {
-  tema: TemaColor;
-}
+export type ConfigState = {
+  modo: Modo;
+  acento: Acento;
+  // ...tus otros campos, si los hay
+};
 
 const initialState: ConfigState = {
-  tema: 'oscuro',
+  modo: 'oscuro',
+  acento: 'sky',
 };
 
 const configSlice = createSlice({
   name: 'config',
   initialState,
   reducers: {
-    cambiarTema: (state, action: PayloadAction<TemaColor>) => {
-      state.tema = action.payload;
+    cambiarModo(state, action: PayloadAction<Modo>) {
+      state.modo = action.payload;
+    },
+    cambiarAcento(state, action: PayloadAction<Acento>) {
+      state.acento = action.payload;
     },
   },
 });
 
-export const { cambiarTema } = configSlice.actions;
+export const { cambiarModo, cambiarAcento } = configSlice.actions;
 export default configSlice.reducer;
