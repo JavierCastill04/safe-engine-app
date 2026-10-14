@@ -1,6 +1,11 @@
 
 import { getApp, getApps, initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import {
+  getAuth,
+  initializeAuth,
+  getReactNativePersistence,
+} from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -16,6 +21,25 @@ export const app = getApps().length
   ? getApp()
   : initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
+export const auth = (() => {
+  try {
+    return initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch (error: unknown) {
+    const codigo =
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error
+        ? String(error.code)
+        : '';
+
+    if (codigo === 'auth/already-initialized') {
+      return getAuth(app);
+    }
+
+    throw error;
+  }
+})();
 
 export const db = getFirestore(app);

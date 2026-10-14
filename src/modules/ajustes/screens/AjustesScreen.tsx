@@ -1,20 +1,48 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { Moon, Waves, ClipboardX, Trash2 } from 'lucide-react-native';
+
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
+import {
+  Moon,
+  Waves,
+  ClipboardX,
+  Trash2,
+  LogOut,
+} from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { signOut } from 'firebase/auth';
+
+import { auth } from '@/config/firebase';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { cambiarTema, TemaColor } from '@/redux/slices/configSlice';
+import { cambiarTema, type TemaColor } from '@/redux/slices/configSlice';
 import { limpiarTodosLosVehiculos } from '@/redux/slices/vehiculoSlice';
 import { limpiarTodosLosMantenimientos } from '@/redux/slices/mantenimientoSlice';
-import { commonStyles, colores, espaciado } from '@/theme';
+import { commonStyles, espaciado } from '@/theme';
+import { ajustesStyles as styles } from '@/theme/ajustesStyles';
 
 export default function AjustesScreen() {
   const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
 
-  const temaActual = useAppSelector((state) => state.config?.tema || 'oscuro');
-  const vehiculos = useAppSelector((state) => state.vehiculos.vehiculos);
-  const mantenimientos = useAppSelector((state) => state.mantenimientos.mantenimientos);
+  const [cerrandoSesion, setCerrandoSesion] = useState(false);
+
+  const temaActual = useAppSelector(
+    (state) => state.config?.tema || 'oscuro'
+  );
+
+  const vehiculos = useAppSelector(
+    (state) => state.vehiculos.vehiculos
+  );
+
+  const mantenimientos = useAppSelector(
+    (state) => state.mantenimientos.mantenimientos
+  );
 
   const handleCambiarTema = (nuevoTema: TemaColor) => {
     dispatch(cambiarTema(nuevoTema));
@@ -22,7 +50,10 @@ export default function AjustesScreen() {
 
   const handleBorrarVehiculos = () => {
     if (vehiculos.length === 0) {
-      Alert.alert('Sin datos', 'No hay vehículos registrados para eliminar.');
+      Alert.alert(
+        'Sin datos',
+        'No hay vehículos registrados para eliminar.'
+      );
       return;
     }
 
@@ -36,7 +67,10 @@ export default function AjustesScreen() {
           style: 'destructive',
           onPress: () => {
             dispatch(limpiarTodosLosVehiculos());
-            Alert.alert('Éxito', 'Todos los datos de vehículos han sido borrados.');
+            Alert.alert(
+              'Éxito',
+              'Todos los datos de vehículos han sido borrados.'
+            );
           },
         },
       ]
@@ -45,7 +79,10 @@ export default function AjustesScreen() {
 
   const handleBorrarMantenimientos = () => {
     if (mantenimientos.length === 0) {
-      Alert.alert('Sin datos', 'No hay registros de mantenimiento para eliminar.');
+      Alert.alert(
+        'Sin datos',
+        'No hay registros de mantenimiento para eliminar.'
+      );
       return;
     }
 
@@ -59,8 +96,49 @@ export default function AjustesScreen() {
           style: 'destructive',
           onPress: () => {
             dispatch(limpiarTodosLosMantenimientos());
-            Alert.alert('Éxito', 'El historial de mantenimientos ha sido vaciado.');
+            Alert.alert(
+              'Éxito',
+              'El historial de mantenimientos ha sido vaciado.'
+            );
           },
+        },
+      ]
+    );
+  };
+
+  const cerrarSesion = async () => {
+    if (cerrandoSesion) return;
+
+    setCerrandoSesion(true);
+
+    try {
+      await signOut(auth);
+
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+
+      Alert.alert(
+        'Error',
+        'No se pudo cerrar la sesión. Inténtalo nuevamente.'
+      );
+    } finally {
+      setCerrandoSesion(false);
+    }
+  };
+
+  const handleCerrarSesion = () => {
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Deseas cerrar tu sesión de Safe Engine?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: cerrarSesion,
         },
       ]
     );
@@ -68,12 +146,18 @@ export default function AjustesScreen() {
 
   return (
     <ScrollView
-      style={[commonStyles.containerScreen, { paddingTop: insets.top + espaciado.sm }]}
-      contentContainerStyle={styles.scrollContent}
+      style={commonStyles.containerScreen}
+      contentContainerStyle={[
+        styles.scrollContent,
+        { paddingTop: insets.top + espaciado.sm },
+      ]}
     >
       {/* SECCIÓN 1: TEMA DE LA APLICACIÓN */}
       <View style={[commonStyles.surface, styles.seccionBox]}>
-        <Text style={styles.seccionTitulo}>Tema de la aplicación</Text>
+        <Text style={styles.seccionTitulo}>
+          Tema de la aplicación
+        </Text>
+
         <Text style={styles.seccionSubtitulo}>
           Selecciona el esquema de colores principal.
         </Text>
@@ -88,7 +172,9 @@ export default function AjustesScreen() {
             onPress={() => handleCambiarTema('oscuro')}
             accessibilityRole="button"
             accessibilityLabel="Seleccionar tema oscuro"
-            accessibilityState={{ selected: temaActual === 'oscuro' }}
+            accessibilityState={{
+              selected: temaActual === 'oscuro',
+            }}
           >
             <Moon color="#FFF" size={23} />
           </TouchableOpacity>
@@ -102,7 +188,9 @@ export default function AjustesScreen() {
             onPress={() => handleCambiarTema('azul')}
             accessibilityRole="button"
             accessibilityLabel="Seleccionar tema azul marino"
-            accessibilityState={{ selected: temaActual === 'azul' }}
+            accessibilityState={{
+              selected: temaActual === 'azul',
+            }}
           >
             <Waves color="#FFF" size={23} />
           </TouchableOpacity>
@@ -111,9 +199,13 @@ export default function AjustesScreen() {
 
       {/* SECCIÓN 2: PRIVACIDAD Y GESTIÓN DE DATOS */}
       <View style={[commonStyles.surface, styles.seccionBox]}>
-        <Text style={styles.seccionTitulo}>Privacidad y Datos</Text>
+        <Text style={styles.seccionTitulo}>
+          Privacidad y Datos
+        </Text>
+
         <Text style={styles.seccionSubtitulo}>
-          Borra la información registrada si vendiste tus vehículos o deseas reiniciar historiales.
+          Borra la información registrada si vendiste tus vehículos
+          o deseas reiniciar historiales.
         </Text>
 
         <View style={styles.accionesContainer}>
@@ -140,72 +232,38 @@ export default function AjustesScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* SECCIÓN 3: CUENTA */}
+      <View style={[commonStyles.surface, styles.seccionBox]}>
+        <Text style={styles.seccionTitulo}>
+          Cuenta
+        </Text>
+
+        <Text style={styles.seccionSubtitulo}>
+          Administra tu sesión de Safe Engine.
+        </Text>
+
+        <TouchableOpacity
+          style={styles.btnCerrarSesion}
+          onPress={handleCerrarSesion}
+          disabled={cerrandoSesion}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar sesión"
+        >
+          {cerrandoSesion ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <>
+              <LogOut color="#FFF" size={21} />
+              <Text style={styles.btnCerrarSesionTexto}>
+                Cerrar sesión
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  scrollContent: {
-    paddingBottom: espaciado.xl + 24,
-  },
-  seccionBox: {
-    padding: espaciado.md,
-    borderRadius: 12,
-    marginBottom: espaciado.md,
-  },
-  seccionTitulo: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colores.texto,
-    lineHeight: 24,
-    marginBottom: espaciado.sm,
-  },
-  seccionSubtitulo: {
-    fontSize: 13,
-    color: colores.textoSecundario,
-    lineHeight: 20,
-    marginBottom: espaciado.md,
-  },
-  opcionesRow: {
-    flexDirection: 'row',
-    gap: espaciado.sm,
-  },
-  btnTema: {
-    flex: 1,
-    minHeight: 52,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  btnTemaOscuro: {
-    backgroundColor: '#0F172A',
-  },
-  btnTemaAzul: {
-    backgroundColor: '#1E3A8A',
-  },
-  btnTemaActivo: {
-    borderColor: colores.primario,
-  },
-  accionesContainer: {
-    gap: espaciado.sm,
-  },
-  btnBorrarMantenimientos: {
-    backgroundColor: '#D97706',
-    minHeight: 52,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnBorrar: {
-    backgroundColor: '#DC2626',
-    minHeight: 52,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

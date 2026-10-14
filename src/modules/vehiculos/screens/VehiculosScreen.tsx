@@ -111,7 +111,7 @@ export const VehiculosScreen = ({ navigation }: any) => {
       {/* Encabezado */}
       <View style={styles.headerRow}>
         <Text style={[commonStyles.title, { color: palette.texto }]}>
-          Vehículos Registrados
+ 
         </Text>
       </View>
       {/* Selector de unidades */}
