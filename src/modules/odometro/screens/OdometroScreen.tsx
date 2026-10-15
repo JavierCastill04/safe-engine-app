@@ -13,15 +13,8 @@ import { Accelerometer } from 'expo-sensors';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { actualizarKilometraje } from '@/redux/slices/vehiculoSlice';
 import { esMovimientoValido } from '../utils/geoUtils';
-
-import {
-  useStyles,
-  useTheme,
-  type ThemeContextType,
-} from '@/hook/hooks';
-
-import { conAlpha } from '@/theme/theme';
-
+import { commonStyles, colores, espaciado } from '@/theme';
+const MAX_INTERVALO_GPS_MS = 15000;
 export const OdometroScreen = () => {
   const dispatch = useAppDispatch();
   const { estilos } = useTheme();
@@ -82,65 +75,57 @@ export const OdometroScreen = () => {
     let active = true;
 
     const iniciarRastreoGPS = async () => {
-      try {
-        const { status } =
-          await Location.requestForegroundPermissionsAsync();
+      // 1. Solicitar permisos de ubicación
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permiso Denegado',
+          'Se requieren permisos de ubicación para medir el desplazamiento real del vehículo.'
+        );
+        setCorriendo(false);
+        return;
+      }
+      // 2. Suscribirse con parámetros de alta fidelidad para navegación
+      locationSubscription.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation, // Máxima precisión GPS posible
+          distanceInterval: 3,                          // Intentar capturar tramos de mínimo 3 metros
+          timeInterval: 1500,                           // Evaluación cada 1.5s
+        },
+(nuevaUbicacion) => {
+  if (!active) return;
 
-        if (!active) return;
-
-        if (status !== 'granted') {
-          Alert.alert(
-            'Permiso denegado',
-            'Se requieren permisos de ubicación para medir el desplazamiento real del vehículo.'
-          );
-
-          setCorriendo(false);
-          return;
-        }
-
-        const subscription = await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.BestForNavigation,
-            distanceInterval: 3,
-            timeInterval: 1500,
-          },
-          (nuevaUbicacion) => {
-            if (!active) return;
-
-            if (ultimaUbicacion.current) {
-              const puntoPrevio = {
-                latitude: ultimaUbicacion.current.coords.latitude,
-                longitude: ultimaUbicacion.current.coords.longitude,
-                accuracy: ultimaUbicacion.current.coords.accuracy,
-                timestamp: ultimaUbicacion.current.timestamp,
-              };
-
-              const puntoNuevo = {
-                latitude: nuevaUbicacion.coords.latitude,
-                longitude: nuevaUbicacion.coords.longitude,
-                accuracy: nuevaUbicacion.coords.accuracy,
-                timestamp: nuevaUbicacion.timestamp,
-              };
-
-              const {
-                esValido,
-                distanciaMetros: metrosTramo,
-              } = esMovimientoValido(
-                puntoPrevio,
-                puntoNuevo,
-                {
-                  distanciaMinimaMetros: 3,
-                  precisionMaximaMetros: 20,
-                  velocidadMaximaKmH: 200,
-                }
-              );
-
-              if (esValido) {
-                setDistanciaMetros(
-                  (prev) => prev + metrosTramo
-                );
-
-                ultimaUbicacion.current = nuevaUbicacion;
+  if (
+    ultimaUbicacion.current &&
+    nuevaUbicacion.timestamp -
+      ultimaUbicacion.current.timestamp >
+      MAX_INTERVALO_GPS_MS
+  ) {
+    ultimaUbicacion.current = nuevaUbicacion;
+    return;
+  }
+          // Si tenemos una coordenada previa, aplicamos los filtros de validación
+          if (ultimaUbicacion.current) {
+            const puntoPrevio = {
+              latitude: ultimaUbicacion.current.coords.latitude,
+              longitude: ultimaUbicacion.current.coords.longitude,
+              accuracy: ultimaUbicacion.current.coords.accuracy,
+              timestamp: ultimaUbicacion.current.timestamp,
+            };
+            const puntoNuevo = {
+              latitude: nuevaUbicacion.coords.latitude,
+              longitude: nuevaUbicacion.coords.longitude,
+              accuracy: nuevaUbicacion.coords.accuracy,
+              timestamp: nuevaUbicacion.timestamp,
+            };
+            // Filtrar ruido/fantasmeo usando geoUtils
+            const { esValido, distanciaMetros: metrosTramo } = esMovimientoValido(
+              puntoPrevio,
+              puntoNuevo,
+              {
+                distanciaMinimaMetros: 3,  // Ignora fluctuaciones estáticas menores a 3 metros
+                precisionMaximaMetros: 20, // Ignora señales GPS distorsionadas (> 20m de margen)
+                velocidadMaximaKmH: 200,   // Filtra saltos o teletransportaciones repentinas
               }
             } else {
               ultimaUbicacion.current = nuevaUbicacion;
@@ -192,16 +177,14 @@ export const OdometroScreen = () => {
     setDistanciaMetros(0);
     ultimaUbicacion.current = null;
   };
-
-  const handleAsignarAVehiculo = () => {
-    if (!vehiculoSeleccionadoId) {
-      Alert.alert(
-        'Vehículo requerido',
-        'Selecciona un vehículo para asignar la distancia.'
-      );
-      return;
-    }
-
+const handleAsignarAVehiculo = () => {
+  if (corriendo) {
+    Alert.alert(
+      'Recorrido en curso',
+      'Pausa el odómetro antes de guardar el recorrido.'
+    );
+    return;
+  }
     if (distanciaMetros === 0) {
       Alert.alert(
         'Sin recorrido',
@@ -223,11 +206,10 @@ export const OdometroScreen = () => {
     }
 
     const kmAdicionales = distanciaMetros / 1000;
-
-    const nuevoKm = Math.round(
-      vehiculo.kilometrajeActual + kmAdicionales
-    );
-
+    const nuevoKm =
+  Math.round(
+    (vehiculo.kilometrajeActual + kmAdicionales) * 1000
+  ) / 1000;
     dispatch(
       actualizarKilometraje({
         id: vehiculoSeleccionadoId,
@@ -443,11 +425,7 @@ export const OdometroScreen = () => {
             styles.btnDeshabilitado,
         ]}
         onPress={handleAsignarAVehiculo}
-        disabled={
-          distanciaMetros === 0 ||
-          !vehiculoSeleccionadoId
-        }
-        activeOpacity={0.8}
+        disabled={distanciaMetros === 0 || corriendo}
         accessibilityRole="button"
         accessibilityLabel="Finalizar y guardar recorrido en vehículo"
       >

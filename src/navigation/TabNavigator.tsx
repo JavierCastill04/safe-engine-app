@@ -11,7 +11,8 @@ import { VehiculosScreen } from '../modules/vehiculos/screens/VehiculosScreen';
 import AjustesScreen from '../modules/ajustes/screens/AjustesScreen';
 import NotificacionesScreen from '../modules/notificaciones/screens/NotificacionesScreen';
 import { OdometroScreen } from '../modules/odometro/screens/OdometroScreen';
-
+import { commonStyles } from '../theme/commonStyles';
+import { colores } from '../theme/colores';
 const Tab = createBottomTabNavigator<TabNavigatorParamList>();
 
 export default function PersonalNavigator() {
@@ -24,19 +25,31 @@ export default function PersonalNavigator() {
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={({ route }) => ({
-        ...getTabScreenOptions(bottom, colores), // 👈 pasa los colores, no el nombre del tema
-        tabBarIcon: ({ color, size }) => {
-          switch (route.name) {
-            case 'Home': return <Home color={color} size={size} />;
-            case 'Vehiculos': return <Car color={color} size={size} />;
-            case 'Odometro': return <Gauge color={color} size={size} />;
-            case 'Notificaciones': return <Bell color={color} size={size} />;
-            case 'Ajustes': return <Settings color={color} size={size} />;
-            default: return null;
-          }
-        },
-        animation: 'none'
-      })}
+  ...getTabScreenOptions(bottom, tema),
+
+  headerStyle: commonStyles.navigationHeader,
+  headerTitleStyle: commonStyles.navigationHeaderTitle,
+  headerTintColor: colores.blanco,
+
+  tabBarIcon: ({ color, size }) => {
+    switch (route.name) {
+      case 'Home':
+        return <Home color={color} size={size} />;
+      case 'Vehiculos':
+        return <Car color={color} size={size} />;
+      case 'Odometro':
+        return <Gauge color={color} size={size} />;
+      case 'Notificaciones':
+        return <Bell color={color} size={size} />;
+      case 'Ajustes':
+        return <Settings color={color} size={size} />;
+      default:
+        return null;
+    }
+  },
+
+  animation: 'none',
+})}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ headerTitle: 'Panel principal' }} />
       <Tab.Screen name="Vehiculos" component={VehiculosScreen} options={{ headerTitle: 'Vehículos registrados' }} />

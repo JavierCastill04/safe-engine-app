@@ -1,7 +1,17 @@
 import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View,  TouchableOpacity, ActivityIndicator, Text} from 'react-native';
 import { Check, ClipboardX, Sun, Trash2 } from 'lucide-react-native';
+import {
+  Moon,
+  Waves,
+  ClipboardX,
+  Trash2,
+  LogOut,
+} from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { signOut } from 'firebase/auth';
+
+import { auth } from '@/config/firebase';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { cambiarAcento, cambiarModo } from '@/redux/slices/AjustesSliceE';
 import { limpiarTodosLosVehiculos } from '@/redux/slices/vehiculoSlice';
@@ -41,8 +51,19 @@ export default function AjustesScreen() {
   const { modo, acento, colores, estilos, espaciado } = useTheme();
   const s = useStyles(makeStyles);
 
-  const vehiculos = useAppSelector((state) => state.vehiculos.vehiculos);
-  const mantenimientos = useAppSelector((state) => state.mantenimientos.mantenimientos);
+  const [cerrandoSesion, setCerrandoSesion] = useState(false);
+
+  const temaActual = useAppSelector(
+    (state) => state.config?.tema || 'oscuro'
+  );
+
+  const vehiculos = useAppSelector(
+    (state) => state.vehiculos.vehiculos
+  );
+
+  const mantenimientos = useAppSelector(
+    (state) => state.mantenimientos.mantenimientos
+  );
 
   const Marca = () => (
     <View style={s.marca}>
@@ -52,7 +73,10 @@ export default function AjustesScreen() {
 
   const handleBorrarVehiculos = () => {
     if (vehiculos.length === 0) {
-      Alert.alert('Sin datos', 'No hay vehículos registrados para eliminar.');
+      Alert.alert(
+        'Sin datos',
+        'No hay vehículos registrados para eliminar.'
+      );
       return;
     }
     Alert.alert(
@@ -65,7 +89,10 @@ export default function AjustesScreen() {
           style: 'destructive',
           onPress: () => {
             dispatch(limpiarTodosLosVehiculos());
-            Alert.alert('Éxito', 'Todos los datos de vehículos han sido borrados.');
+            Alert.alert(
+              'Éxito',
+              'Todos los datos de vehículos han sido borrados.'
+            );
           },
         },
       ]
@@ -74,7 +101,10 @@ export default function AjustesScreen() {
 
   const handleBorrarMantenimientos = () => {
     if (mantenimientos.length === 0) {
-      Alert.alert('Sin datos', 'No hay registros de mantenimiento para eliminar.');
+      Alert.alert(
+        'Sin datos',
+        'No hay registros de mantenimiento para eliminar.'
+      );
       return;
     }
     Alert.alert(
@@ -87,36 +117,89 @@ export default function AjustesScreen() {
           style: 'destructive',
           onPress: () => {
             dispatch(limpiarTodosLosMantenimientos());
-            Alert.alert('Éxito', 'El historial de mantenimientos ha sido vaciado.');
+            Alert.alert(
+              'Éxito',
+              'El historial de mantenimientos ha sido vaciado.'
+            );
           },
         },
       ]
     );
   };
 
-  return (
+  const cerrarSesion = async () => {
+    if (cerrandoSesion) return;
+
+    setCerrandoSesion(true);
+
+    try {
+      await signOut(auth);
+
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+
+      Alert.alert(
+        'Error',
+        'No se pudo cerrar la sesión. Inténtalo nuevamente.'
+      );
+    } finally {
+      setCerrandoSesion(false);
+    }
+  };
+
+  const handleCerrarSesion = () => {
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Deseas cerrar tu sesión de Safe Engine?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: cerrarSesion,
+        },
+      ]
+    );
+  };
+
+ return (
     <ScrollView
-      style={[estilos.containerScreen, { paddingTop: insets.top + espaciado.sm }]}
+      style={[
+        estilos.containerScreen,
+        { paddingTop: insets.top + espaciado.sm },
+      ]}
       contentContainerStyle={s.scrollContent}
     >
+      {/* SECCIÓN 1: APARIENCIA */}
       <Card style={s.seccion}>
         <View style={s.encabezado}>
           <View style={s.icono}>
             <Sun size={18} color={colores.primario} />
           </View>
+
           <View style={{ flex: 1 }}>
             <Text variant="heading">Apariencia</Text>
-            <Text variant="small" secundario>Tema y paleta de colores de la aplicación.</Text>
+            <Text variant="small" secundario>
+              Tema y paleta de colores de la aplicación.
+            </Text>
           </View>
         </View>
 
-        <Text variant="small" style={s.etiqueta}>Modo de visualización</Text>
+        <Text variant="small" style={s.etiqueta}>
+          Modo de visualización
+        </Text>
+
         <Text variant="small" secundario style={s.ayuda}>
           Selecciona cómo quieres visualizar la aplicación.
         </Text>
+
         <View style={s.modos}>
           {MODOS.map((item) => {
             const seleccionado = modo === item.id;
+
             return (
               <Pressable
                 key={item.id}
@@ -124,10 +207,16 @@ export default function AjustesScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Modo ${item.nombre}`}
                 accessibilityState={{ selected: seleccionado }}
-                style={[s.opcion, s.opcionModo, seleccionado && s.opcionSeleccionada]}
+                style={[
+                  s.opcion,
+                  s.opcionModo,
+                  seleccionado && s.opcionSeleccionada,
+                ]}
               >
                 <VistaPrevia tipo={item.id} />
-                <Text style={s.nombreOpcion}>{item.nombre}</Text>
+                <Text style={s.nombreOpcion}>
+                  {item.nombre}
+                </Text>
                 {seleccionado && <Marca />}
               </Pressable>
             );
@@ -136,7 +225,10 @@ export default function AjustesScreen() {
 
         <View style={s.divisor} />
 
-        <Text variant="small" style={s.etiqueta}>Paleta de colores</Text>
+        <Text variant="small" style={s.etiqueta}>
+          Paleta de colores
+        </Text>
+
         <Text variant="small" secundario style={s.ayuda}>
           Selecciona el color principal utilizado por la aplicación.
         </Text>
@@ -144,6 +236,7 @@ export default function AjustesScreen() {
         <View style={s.paleta}>
           {ACENTOS.map((item) => {
             const seleccionado = acento === item.id;
+
             return (
               <Pressable
                 key={item.id}
@@ -151,24 +244,44 @@ export default function AjustesScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Paleta ${item.nombre}`}
                 accessibilityState={{ selected: seleccionado }}
-                style={[s.opcion, s.opcionPaleta, seleccionado && s.opcionSeleccionada]}
+                style={[
+                  s.opcion,
+                  s.opcionPaleta,
+                  seleccionado && s.opcionSeleccionada,
+                ]}
               >
                 <View style={s.muestras}>
                   {item.colores.map((c) => (
-                    <View key={c} style={[s.muestra, { backgroundColor: c }]} />
+                    <View
+                      key={c}
+                      style={[
+                        s.muestra,
+                        { backgroundColor: c },
+                      ]}
+                    />
                   ))}
                 </View>
-                <Text style={s.nombreOpcion}>{item.nombre}</Text>
+
+                <Text style={s.nombreOpcion}>
+                  {item.nombre}
+                </Text>
+
                 {seleccionado && <Marca />}
               </Pressable>
             );
           })}
         </View>
       </Card>
+
+      {/* SECCIÓN 2: PRIVACIDAD Y DATOS */}
       <Card style={s.seccion}>
-        <Text variant="heading">Privacidad y Datos</Text>
+        <Text variant="heading">
+          Privacidad y Datos
+        </Text>
+
         <Text variant="small" secundario style={s.ayuda}>
-          Borra la información registrada si vendiste tus vehículos o deseas reiniciar historiales.
+          Borra la información registrada si vendiste tus vehículos
+          o deseas reiniciar historiales.
         </Text>
 
         <View style={s.acciones}>
@@ -181,6 +294,9 @@ export default function AjustesScreen() {
             accessibilityHint="Solicita confirmación antes de borrar los registros de mantenimiento"
           >
             <ClipboardX color="#FFF" size={24} />
+            <Text style={{ color: '#FFF' }}>
+              Borrar mantenimientos
+            </Text>
           </Button>
 
           <Button
@@ -192,8 +308,40 @@ export default function AjustesScreen() {
             accessibilityHint="Solicita confirmación antes de borrar todos los vehículos"
           >
             <Trash2 color="#FFF" size={24} />
+            <Text style={{ color: '#FFF' }}>
+              Borrar vehículos
+            </Text>
           </Button>
         </View>
+      </Card>
+
+      {/* SECCIÓN 3: CUENTA */}
+      <Card style={s.seccion}>
+        <Text variant="heading">Cuenta</Text>
+
+        <Text variant="small" secundario style={s.ayuda}>
+          Administra tu sesión de Safe Engine.
+        </Text>
+
+        <TouchableOpacity
+          style={s.btnCerrarSesion}
+          onPress={handleCerrarSesion}
+          disabled={cerrandoSesion}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar sesión"
+        >
+          {cerrandoSesion ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <>
+              <LogOut color="#FFF" size={21} />
+              <Text style={s.btnCerrarSesionTexto}>
+                Cerrar sesión
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
       </Card>
     </ScrollView>
   );

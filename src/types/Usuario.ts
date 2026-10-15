@@ -1,7 +1,7 @@
+
 export interface Usuario {
-    id: number;
-    nombre: string;
-    telefono: string;
-    correo: string;
-    pswdHash: string;
+  id: string;
+  nombre: string;
+  telefono: string;
+  correo: string;
 }

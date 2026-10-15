@@ -1,15 +1,28 @@
-import React, { useMemo } from 'react';
-import { ScrollView, Text, View, StyleSheet } from 'react-native';
+
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  ScrollView,
+  Text,
+  View,
+  RefreshControl,
+} from 'react-native';
+
+import {
+  Bell,
+  CheckCircle,
+  Info,
+  AlertTriangle,
+} from 'lucide-react-native';
+
+import { useFocusEffect } from '@react-navigation/native';
+
 import { useAppSelector } from '@/redux/hooks';
-import {useStyles,useTheme,type ThemeContextType,} from '@/hook/hooks';
-import { conAlpha } from '@/theme/theme';
+import { commonStyles, colores } from '@/theme';
+
 import NotificacionesCard from '../components/NotificacionesCard';
 import { obtenerNotificaciones } from '../utils/NotificacionesUtils';
 
 export default function NotificacionesScreen() {
-  const { estilos, espaciado } = useTheme();
-  const styles = useStyles(makeStyles);
-
   const vehiculos = useAppSelector(
     (state) => state.vehiculos.vehiculos
   );
@@ -18,35 +31,64 @@ export default function NotificacionesScreen() {
     (state) => state.mantenimientos.mantenimientos
   );
 
-  const notificaciones = useMemo(
-    () => obtenerNotificaciones(vehiculos, mantenimientos),
-    [vehiculos, mantenimientos]
+  const [actualizacion, setActualizacion] = useState(0);
+  const [refrescando, setRefrescando] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setActualizacion((valor) => valor + 1);
+    }, [])
   );
 
+  const notificaciones = useMemo(
+    () => obtenerNotificaciones(vehiculos, mantenimientos),
+    [vehiculos, mantenimientos, actualizacion]
+  );
+
+  const actualizarNotificaciones = useCallback(() => {
+    setRefrescando(true);
+    setActualizacion((valor) => valor + 1);
+    setRefrescando(false);
+  }, []);
+
+  const avisosVencidos = notificaciones.filter(
+    (notificacion) => notificacion.estado === 'vencido'
+  ).length;
+
   return (
-    <View
-      style={[
-        estilos.containerScreen,
-        { paddingTop: espaciado.sm },
-      ]}
-    >
-      <View style={styles.header}>
-        <Text style={styles.titulo}>Notificaciones</Text>
-
-        <Text style={styles.descripcion}>
-          Avisos sobre los próximos mantenimientos y servicios
-          pendientes de tus vehículos.
-        </Text>
-      </View>
-
-      <View
+    <View style={commonStyles.containerScreen}>
+      <Text
         style={[
-          estilos.surface,
-          styles.resumen,
+          commonStyles.title,
+          commonStyles.notificacionesTitulo,
         ]}
       >
-        <Text style={styles.resumenTexto}>
-          Avisos pendientes
+
+      </Text>
+
+      {/* Introducción */}
+      <View
+        style={[
+          commonStyles.card,
+          commonStyles.notificacionesIntroduccion,
+        ]}
+      >
+        <View style={commonStyles.notificacionesIntroduccionEncabezado}>
+          <Info color={colores.azulClaro} size={19} />
+
+          <Text style={commonStyles.cardTitle}>
+            Estado de tus vehículos
+          </Text>
+        </View>
+
+        <Text
+          style={[
+            commonStyles.secondaryText,
+            commonStyles.notificacionesDescripcion,
+          ]}
+        >
+          Consulta los próximos servicios y los mantenimientos
+          pendientes de tus vehículos.
         </Text>
 
         <View style={styles.contador}>
@@ -56,24 +98,84 @@ export default function NotificacionesScreen() {
         </View>
       </View>
 
+      {/* Resumen */}
+      <View
+        style={[
+          commonStyles.card,
+          commonStyles.notificacionesResumen,
+        ]}
+      >
+        <View style={commonStyles.notificacionesIconoEncabezado}>
+  <Bell color={colores.azulClaro} size={22} />
+</View>
+
+        <View style={commonStyles.notificacionesResumenContenido}>
+          <Text
+            style={[
+              commonStyles.text,
+              commonStyles.notificacionesResumenTexto,
+            ]}
+          >
+            Avisos pendientes: {notificaciones.length}
+          </Text>
+
+          {avisosVencidos > 0 && (
+            <View style={commonStyles.notificacionesResumenVencidosFila}>
+              <AlertTriangle color={colores.gris} size={16} />
+
+              <Text
+                style={[
+                  commonStyles.text,
+                  commonStyles.notificacionesResumenVencidos,
+                ]}
+              >
+                Mantenimientos vencidos: {avisosVencidos}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Lista de notificaciones */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.lista}
+        contentContainerStyle={commonStyles.notificacionesLista}
+        refreshControl={
+          <RefreshControl
+            refreshing={refrescando}
+            onRefresh={actualizarNotificaciones}
+          />
+        }
       >
         {notificaciones.length === 0 ? (
           <View
             style={[
-              estilos.surface,
-              styles.estadoVacio,
+              commonStyles.card,
+              commonStyles.notificacionesEstadoVacio,
             ]}
           >
-            <Text style={styles.estadoVacioTitulo}>
-              Todo está al día
+            <CheckCircle
+              color={colores.azulClaro}
+              size={30}
+            />
+
+            <Text
+              style={[
+                commonStyles.cardTitle,
+                commonStyles.notificacionesEstadoVacioTitulo,
+              ]}
+            >
+              No hay mantenimientos próximos
             </Text>
 
-            <Text style={styles.estadoVacioDescripcion}>
-              No se encontraron mantenimientos próximos o vencidos
-              entre los servicios registrados.
+            <Text
+              style={[
+                commonStyles.secondaryText,
+                commonStyles.notificacionesEstadoVacioDescripcion,
+              ]}
+            >
+              No se encontraron mantenimientos próximos o
+              vencidos entre los servicios registrados.
             </Text>
           </View>
         ) : (
@@ -88,85 +190,3 @@ export default function NotificacionesScreen() {
     </View>
   );
 }
-
-const makeStyles = (t: ThemeContextType) =>
-  StyleSheet.create({
-    header: {
-      marginBottom: t.espaciado.md,
-    },
-
-    titulo: {
-      fontSize: 22,
-      fontWeight: 'bold',
-      color: t.colores.texto,
-      marginBottom: t.espaciado.sm,
-    },
-
-    descripcion: {
-      color: t.colores.textoSecundario,
-      fontSize: 14,
-      lineHeight: 21,
-    },
-
-    resumen: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: t.espaciado.md,
-      marginBottom: t.espaciado.md,
-      borderWidth: 1,
-      borderColor: conAlpha(t.colores.borde, 30),
-      borderRadius: 12,
-    },
-
-    resumenTexto: {
-      flex: 1,
-      color: t.colores.texto,
-      fontSize: 15,
-      fontWeight: '600',
-    },
-
-    contador: {
-      minWidth: 36,
-      height: 36,
-      paddingHorizontal: t.espaciado.sm,
-      borderRadius: 18,
-      backgroundColor: t.colores.primario,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-
-    contadorTexto: {
-      color: '#FFFFFF',
-      fontSize: 15,
-      fontWeight: 'bold',
-    },
-
-    lista: {
-      gap: t.espaciado.md,
-      paddingBottom: t.espaciado.xl,
-    },
-
-    estadoVacio: {
-      alignItems: 'center',
-      padding: t.espaciado.lg,
-      borderWidth: 1,
-      borderColor: conAlpha(t.colores.borde, 30),
-      borderRadius: 12,
-    },
-
-    estadoVacioTitulo: {
-      color: t.colores.texto,
-      fontSize: 17,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      marginBottom: t.espaciado.sm,
-    },
-
-    estadoVacioDescripcion: {
-      color: t.colores.textoSecundario,
-      fontSize: 14,
-      textAlign: 'center',
-      lineHeight: 21,
-    },
-  });

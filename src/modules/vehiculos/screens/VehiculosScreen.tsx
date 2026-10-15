@@ -137,8 +137,8 @@ export const VehiculosScreen = ({ navigation }: any) => {
       ]}
     >
       <View style={styles.headerRow}>
-        <Text style={styles.seccionTitulo}>
-          Vehículos Registrados
+        <Text style={[commonStyles.title, { color: palette.texto }]}>
+ 
         </Text>
 
         <Text style={styles.headerSubtitulo}>
