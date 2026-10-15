@@ -1,7 +1,14 @@
 
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SchedulableTriggerInputTypes } from 'expo-notifications/build/Notifications.types';
+import { setNotificationHandler } from 'expo-notifications/build/NotificationsHandler';
+import {
+  getPermissionsAsync,
+  requestPermissionsAsync,
+} from 'expo-notifications/build/NotificationPermissions';
+import { setNotificationChannelAsync } from 'expo-notifications/build/setNotificationChannelAsync';
+import { scheduleNotificationAsync } from 'expo-notifications/build/scheduleNotificationAsync';
 
 import type { NotificacionMantenimiento } from './NotificacionesUtils';
 
@@ -10,35 +17,37 @@ const CLAVE_AVISOS = '@safe_engine/avisos_locales';
 
 let sincronizando = false;
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+if (Platform.OS !== 'web') {
+  setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export const configurarNotificacionesLocales =
   async (): Promise<boolean> => {
     if (Platform.OS === 'web') return false;
 
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync(
+      await setNotificationChannelAsync(
         CANAL_MANTENIMIENTO,
         {
           name: 'Mantenimientos',
-          importance: Notifications.AndroidImportance.HIGH,
+          importance: 4,
           vibrationPattern: [0, 250, 250, 250],
         }
       );
     }
 
-    const permisos = await Notifications.getPermissionsAsync();
+    const permisos = await getPermissionsAsync();
 
     if (permisos.granted) return true;
 
-    const respuesta = await Notifications.requestPermissionsAsync();
+    const respuesta = await requestPermissionsAsync();
 
     return respuesta.granted;
   };
@@ -61,7 +70,6 @@ export const sincronizarNotificacionesLocales = async (
   sincronizando = true;
 
   try {
-    // No solicitar permisos cuando no existen avisos.
     if (notificaciones.length === 0) return;
 
     const permitido = await configurarNotificacionesLocales();
@@ -81,7 +89,7 @@ export const sincronizarNotificacionesLocales = async (
 
       if (historial.has(clave)) continue;
 
-      await Notifications.scheduleNotificationAsync({
+      await scheduleNotificationAsync({
         content: {
           title: notificacion.titulo,
           body: `${notificacion.vehiculoNombre}: ${notificacion.mensaje}`,
@@ -91,18 +99,17 @@ export const sincronizarNotificacionesLocales = async (
           },
         },
         trigger:
-          Platform.OS === 'android'
-            ? {
-                type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-                seconds: 1,
-                channelId: CANAL_MANTENIMIENTO,
-              }
-            : null,
+  Platform.OS === 'android'
+    ? {
+        type: SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 1,
+        channelId: CANAL_MANTENIMIENTO,
+      }
+    : null,
       });
 
       historial.add(clave);
 
-      // Guardar después de cada programación exitosa.
       await AsyncStorage.setItem(
         CLAVE_AVISOS,
         JSON.stringify([...historial])
