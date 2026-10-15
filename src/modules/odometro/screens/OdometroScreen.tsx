@@ -14,6 +14,7 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { actualizarKilometraje } from '@/redux/slices/vehiculoSlice';
 import { esMovimientoValido } from '../utils/geoUtils';
 import { commonStyles, colores, espaciado } from '@/theme';
+const MAX_INTERVALO_GPS_MS = 15000;
 export const OdometroScreen = () => {
   const dispatch = useAppDispatch();
   const vehiculos = useAppSelector((state) => state.vehiculos.vehiculos);
@@ -77,8 +78,18 @@ export const OdometroScreen = () => {
           distanceInterval: 3,                          // Intentar capturar tramos de mínimo 3 metros
           timeInterval: 1500,                           // Evaluación cada 1.5s
         },
-        (nuevaUbicacion) => {
-          if (!active) return;
+(nuevaUbicacion) => {
+  if (!active) return;
+
+  if (
+    ultimaUbicacion.current &&
+    nuevaUbicacion.timestamp -
+      ultimaUbicacion.current.timestamp >
+      MAX_INTERVALO_GPS_MS
+  ) {
+    ultimaUbicacion.current = nuevaUbicacion;
+    return;
+  }
           // Si tenemos una coordenada previa, aplicamos los filtros de validación
           if (ultimaUbicacion.current) {
             const puntoPrevio = {
@@ -138,11 +149,14 @@ export const OdometroScreen = () => {
     setDistanciaMetros(0);
     ultimaUbicacion.current = null;
   };
-  const handleAsignarAVehiculo = () => {
-    if (!vehiculoSeleccionadoId) {
-      Alert.alert('Error', 'Selecciona un vehículo para asignar la distancia.');
-      return;
-    }
+const handleAsignarAVehiculo = () => {
+  if (corriendo) {
+    Alert.alert(
+      'Recorrido en curso',
+      'Pausa el odómetro antes de guardar el recorrido.'
+    );
+    return;
+  }
     if (distanciaMetros === 0) {
       Alert.alert('Atención', 'No hay recorrido acumulado para guardar.');
       return;
@@ -151,7 +165,10 @@ export const OdometroScreen = () => {
     if (!vehiculo) return;
     // Convertir metros acumulados a kilómetros
     const kmAdicionales = distanciaMetros / 1000;
-    const nuevoKm = Math.round(vehiculo.kilometrajeActual + kmAdicionales);
+    const nuevoKm =
+  Math.round(
+    (vehiculo.kilometrajeActual + kmAdicionales) * 1000
+  ) / 1000;
     dispatch(
       actualizarKilometraje({
         id: vehiculoSeleccionadoId,
@@ -257,7 +274,7 @@ export const OdometroScreen = () => {
       <TouchableOpacity
         style={[styles.btnGuardar, distanciaMetros === 0 && { opacity: 0.5 }]}
         onPress={handleAsignarAVehiculo}
-        disabled={distanciaMetros === 0}
+        disabled={distanciaMetros === 0 || corriendo}
         accessibilityRole="button"
         accessibilityLabel="Finalizar y guardar recorrido en vehículo"
       >
