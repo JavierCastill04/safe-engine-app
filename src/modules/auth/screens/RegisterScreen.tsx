@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,14 +10,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ShieldCheck } from 'lucide-react-native';
 
-import { auth } from '../../../config/firebase';
-import { commonStyles, colores } from '../../../theme';
-import type { RootStackParamList } from '../../../navigation/types';
+import { auth } from '@/config/firebase';
+import { commonStyles, colores, espaciado } from '@/theme';
+import type { RootStackParamList } from '@/navigation/types';
 
 type RegisterNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -70,7 +69,6 @@ export default function RegisterScreen() {
         'Registro exitoso',
         'Tu cuenta se ha creado correctamente.'
       );
-
     } catch (err: any) {
       switch (err.code) {
         case 'auth/email-already-in-use':
@@ -94,98 +92,109 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={commonStyles.containerScreen}>
+    <View style={commonStyles.containerScreen}>
       <KeyboardAvoidingView
-        style={commonStyles.containerScreen}
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={commonStyles.authScrollContent}
         >
-          <Text style={commonStyles.title}>Crear cuenta</Text>
-          <Text style={commonStyles.secondaryText}>
-            Regístrate para utilizar Safe Engine.
-          </Text>
+          {/* Tarjeta de Registro */}
+          <View style={[commonStyles.surface, { padding: espaciado.xl, width: '100%' }]}>
+            
+            <View style={{ alignItems: 'center', marginBottom: espaciado.md }}>
+              <ShieldCheck size={48} color={colores.enfasis} strokeWidth={2.2} />
+              <Text style={[commonStyles.title, { marginTop: espaciado.xs, textAlign: 'center' }]}>
+                Crear cuenta
+              </Text>
+              <Text style={[commonStyles.secondaryText, { textAlign: 'center' }]}>
+                Regístrate para comenzar con Safe Engine
+              </Text>
+            </View>
 
-          <View style={commonStyles.inputView}>
-            <Text style={commonStyles.label}>Nombre</Text>
-            <TextInput
-              style={commonStyles.input}
-              placeholder="Tu nombre"
-              placeholderTextColor={colores.gris}
-              value={nombre}
-              onChangeText={setNombre}
-              autoCapitalize="words"
-            />
+            <View style={commonStyles.inputView}>
+              <Text style={commonStyles.label}>Nombre completo</Text>
+              <TextInput
+                style={commonStyles.input}
+                placeholder="Tu nombre"
+                placeholderTextColor={colores.gris}
+                value={nombre}
+                onChangeText={setNombre}
+                autoCapitalize="words"
+              />
+            </View>
+
+            <View style={commonStyles.inputView}>
+              <Text style={commonStyles.label}>Correo electrónico</Text>
+              <TextInput
+                style={commonStyles.input}
+                placeholder="correo@ejemplo.com"
+                placeholderTextColor={colores.gris}
+                value={correo}
+                onChangeText={setCorreo}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
+            </View>
+
+            <View style={commonStyles.inputView}>
+              <Text style={commonStyles.label}>Contraseña</Text>
+              <TextInput
+                style={commonStyles.input}
+                placeholder="Mínimo 6 caracteres"
+                placeholderTextColor={colores.gris}
+                value={contrasena}
+                onChangeText={setContrasena}
+                secureTextEntry
+                autoComplete="new-password"
+              />
+            </View>
+
+            <View style={commonStyles.inputView}>
+              <Text style={commonStyles.label}>Confirmar contraseña</Text>
+              <TextInput
+                style={commonStyles.input}
+                placeholder="Repite tu contraseña"
+                placeholderTextColor={colores.gris}
+                value={confirmarContrasena}
+                onChangeText={setConfirmarContrasena}
+                secureTextEntry
+              />
+            </View>
+
+            {error ? (
+              <Text style={commonStyles.errorText}>{error}</Text>
+            ) : null}
+
+            <TouchableOpacity
+              style={[commonStyles.button, { marginTop: espaciado.md }]}
+              onPress={registrarUsuario}
+              disabled={cargando}
+              accessibilityRole="button"
+            >
+              {cargando ? (
+                <ActivityIndicator color={colores.blanco} />
+              ) : (
+                <Text style={commonStyles.buttonText}>Registrarse</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Login')}
+              style={{ marginTop: espaciado.md, alignItems: 'center' }}
+              accessibilityRole="button"
+            >
+              <Text style={commonStyles.secondaryText}>
+                ¿Ya tienes una cuenta? <Text style={{ color: colores.primario, fontWeight: 'bold' }}>Inicia sesión</Text>
+              </Text>
+            </TouchableOpacity>
+
           </View>
-
-          <View style={commonStyles.inputView}>
-            <Text style={commonStyles.label}>Correo electrónico</Text>
-            <TextInput
-              style={commonStyles.input}
-              placeholder="correo@ejemplo.com"
-              placeholderTextColor={colores.gris}
-              value={correo}
-              onChangeText={setCorreo}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-            />
-          </View>
-
-          <View style={commonStyles.inputView}>
-            <Text style={commonStyles.label}>Contraseña</Text>
-            <TextInput
-              style={commonStyles.input}
-              placeholder="Mínimo 6 caracteres"
-              placeholderTextColor={colores.gris}
-              value={contrasena}
-              onChangeText={setContrasena}
-              secureTextEntry
-              autoComplete="new-password"
-            />
-          </View>
-
-          <View style={commonStyles.inputView}>
-            <Text style={commonStyles.label}>Confirmar contraseña</Text>
-            <TextInput
-              style={commonStyles.input}
-              placeholder="Repite tu contraseña"
-              placeholderTextColor={colores.gris}
-              value={confirmarContrasena}
-              onChangeText={setConfirmarContrasena}
-              secureTextEntry
-            />
-          </View>
-
-          {error ? (
-            <Text style={commonStyles.errorText}>{error}</Text>
-          ) : null}
-
-          <TouchableOpacity
-            style={commonStyles.button}
-            onPress={registrarUsuario}
-            disabled={cargando}
-            accessibilityRole="button"
-          >
-            {cargando ? (
-              <ActivityIndicator color={colores.blanco} />
-            ) : (
-              <Text style={commonStyles.buttonText}>Registrarse</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Login')}
-            accessibilityRole="button"
-          >
-            <Text style={commonStyles.secondaryText}>
-              ¿Ya tienes una cuenta? Inicia sesión
-            </Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }

@@ -1,186 +1,93 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { shallowEqual } from 'react-redux';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { Wrench, Calendar, Gauge, DollarSign } from 'lucide-react-native';
+
 import { useAppSelector } from '@/redux/hooks';
-import { commonStyles, colores, espaciado } from '@/theme';
+import { commonStyles, colores } from '@/theme';
+import type { Mantenimiento } from '@/types';
 
-export const HistorialMantenimientoScreen = ({ route, navigation }: any) => {
-  const insets = useSafeAreaInsets();
-  const { vehiculoId, vehiculoNombre } = route.params || {};
+export const HistorialMantenimientosScreen = ({ route }: any) => {
+  const vehiculoId = route?.params?.vehiculoId;
+  const vehiculoNombre = route?.params?.vehiculoNombre || 'Vehículo';
 
-  // Obtener mantenimientos con memoización de referencia
-  const mantenimientos = useAppSelector(
-    (state) =>
-      state.mantenimientos.mantenimientos.filter(
-        (m: any) => m.vehiculoId === vehiculoId
-      ),
-    shallowEqual
+  const mantenimientos = useAppSelector((state) =>
+    state.mantenimientos.mantenimientos.filter((m) =>
+      vehiculoId ? m.vehiculoId === vehiculoId : true
+    )
   );
 
+  const formatearNumero = (num: number) => {
+    return num.toFixed(1).replace(',', '.');
+  };
+
   return (
-    <View style={[commonStyles.containerScreen, { paddingTop: insets.top + espaciado.sm }]}>
-      {/* Encabezado Fijo */}
-      <Text style={commonStyles.title}>Historial de Mantenimientos</Text>
-      {vehiculoNombre ? (
-        <Text style={styles.subtitulo}>Vehículo: {vehiculoNombre}</Text>
-      ) : null}
+    <View style={commonStyles.containerScreen}>
+      <Text style={commonStyles.title}>Historial: {vehiculoNombre}</Text>
 
-      {/* Lista Desplazable con Scrollbar Vertical */}
-      <View style={styles.listaContainer}>
-        {mantenimientos.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyTexto}>
-              No hay registros de mantenimiento guardados para este vehículo.
-            </Text>
-          </View>
-        ) : (
-          <FlatList
-            data={mantenimientos}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={true}
-            contentContainerStyle={styles.listContent}
-            renderItem={({ item }: { item: any }) => (
-              <View style={[commonStyles.surface, styles.cardHistorial]}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.tipoMantenimiento}>
-                    {item.tipo || item.titulo || 'Mantenimiento General'}
+      {mantenimientos.length === 0 ? (
+        <View style={[commonStyles.surface, commonStyles.notificacionesEstadoVacio]}>
+          <Wrench size={48} color={colores.gris} />
+          <Text style={[commonStyles.title, commonStyles.notificacionesEstadoVacioTitulo]}>
+            Sin mantenimientos
+          </Text>
+          <Text style={[commonStyles.secondaryText, commonStyles.notificacionesEstadoVacioDescripcion]}>
+            No hay mantenimientos registrados para este vehículo.
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={mantenimientos}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ gap: 12, paddingBottom: 24 }}
+          renderItem={({ item }: { item: Mantenimiento }) => {
+            const kmMostrar = item.kilometraje || item.kilometrajeRealiz || item.kilometrajeActual || 0;
+            return (
+              <View style={[commonStyles.surface, { padding: 16 }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text style={[commonStyles.heading, { textTransform: 'capitalize' }]}>
+                    {item.tipo}
                   </Text>
-                  <Text style={styles.fecha}>
-                    {item.fecha || new Date().toLocaleDateString()}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Calendar size={14} color={colores.gris} />
+                    <Text style={commonStyles.secondaryText}>{item.fecha}</Text>
+                  </View>
                 </View>
 
-                <Text style={styles.descripcion}>
-                  {item.descripcion || item.notas || 'Sin detalle registrado.'}
-                </Text>
-
-                <View style={styles.snapshotBox}>
-                  <Text style={styles.snapshotTitulo}>
-                    📌 Datos guardados al registrar:
-                  </Text>
-                  <Text style={styles.snapshotItem}>
-                    • Kilometraje:{' '}
-                    <Text style={styles.bold}>
-                      {(
-                        item.kilometrajeRealiz ??
-                        item.kilometrajeActual ??
-                        item.kilometraje ??
-                        0
-                      ).toLocaleString()}{' '}
-                      km
-                    </Text>
-                  </Text>
-                  {item.costo ? (
-                    <Text style={styles.snapshotItem}>
-                      • Costo: <Text style={styles.bold}>${item.costo}</Text>
-                    </Text>
-                  ) : null}
+                <View style={{ flexDirection: 'row', gap: 16, marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Gauge size={16} color={colores.primario} />
+                    <Text style={commonStyles.text}>{formatearNumero(kmMostrar)} km</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <DollarSign size={16} color={colores.primario} />
+                    <Text style={commonStyles.text}>${formatearNumero(item.costo)}</Text>
+                  </View>
                 </View>
+
+                {item.siguienteMantenimientoKm ? (
+                  <Text style={[commonStyles.secondaryText, { fontSize: 13, color: colores.azulClaro }]}>
+                    Siguiente cambio a los: {formatearNumero(item.siguienteMantenimientoKm)} km
+                  </Text>
+                ) : null}
+
+                {item.siguienteMantenimientoFecha ? (
+                  <Text style={[commonStyles.secondaryText, { fontSize: 13, color: colores.azulClaro }]}>
+                    Siguiente revisión por fecha: {item.siguienteMantenimientoFecha}
+                  </Text>
+                ) : null}
+
+                {(item.notas || item.descripcion) && (
+                  <Text style={[commonStyles.secondaryText, { fontStyle: 'italic', marginTop: 6 }]}>
+                    "{item.notas || item.descripcion}"
+                  </Text>
+                )}
               </View>
-            )}
-          />
-        )}
-      </View>
-
-      {/* Botón Fijo en el Pie de Pantalla */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, espaciado.md) }]}>
-        <TouchableOpacity
-          style={styles.btnRegresarBottom}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.btnRegresarTexto}>← Regresar a Vehículos</Text>
-        </TouchableOpacity>
-      </View>
+            );
+          }}
+        />
+      )}
     </View>
   );
 };
 
-export default HistorialMantenimientoScreen;
-
-const styles = StyleSheet.create({
-  subtitulo: {
-    color: colores.textoSecundario,
-    fontSize: 15,
-    marginBottom: espaciado.sm,
-  },
-  listaContainer: {
-    flex: 1, // Toma todo el espacio vertical disponible para permitir scroll
-  },
-  listContent: {
-    gap: espaciado.md,
-    paddingBottom: espaciado.md,
-  },
-  emptyBox: {
-    padding: espaciado.xl,
-    alignItems: 'center',
-  },
-  emptyTexto: {
-    color: colores.textoSecundario,
-    textAlign: 'center',
-    fontSize: 14,
-  },
-  cardHistorial: {
-    padding: espaciado.md,
-    borderRadius: 12,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  tipoMantenimiento: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colores.texto,
-  },
-  fecha: {
-    fontSize: 12,
-    color: colores.textoSecundario,
-  },
-  descripcion: {
-    color: colores.texto,
-    marginBottom: 10,
-  },
-  snapshotBox: {
-    backgroundColor: '#1E293B',
-    padding: 10,
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: colores.primario,
-  },
-  snapshotTitulo: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  snapshotItem: {
-    color: '#E2E8F0',
-    fontSize: 13,
-  },
-  bold: {
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  bottomBar: {
-    paddingTop: espaciado.sm,
-    borderTopWidth: 1,
-    borderTopColor: '#1E293B',
-    backgroundColor: 'transparent',
-  },
-  btnRegresarBottom: {
-    backgroundColor: '#2563EB',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnRegresarTexto: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-});
+export default HistorialMantenimientosScreen;

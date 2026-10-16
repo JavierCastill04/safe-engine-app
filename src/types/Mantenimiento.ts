@@ -14,28 +14,22 @@ export interface Mantenimiento {
   costo: number;
   notas?: string;
   descripcion?: string;
-  kilometrajeRealiz?: number; // Kilometraje real al momento del mantenimiento
-  kilometrajeActual?: number; // Kilometraje actual del vehículo al momento del mantenimiento
+  kilometrajeRealiz?: number;
+  kilometrajeActual?: number;
 
-  
-  // Detalles específicos según tipo de mantenimiento
+  // Nuevos campos para cálculo del siguiente mantenimiento
+  intervaloKm?: number;            // Distancia hasta el próximo cambio (ej: 5000 km)
+  siguienteMantenimientoKm?: number; // (kilometraje al realizar + intervaloKm)
+  siguienteMantenimientoFecha?: string; // Fecha límite para mantenimientos por tiempo (ej: Batería)
+
   detallesEspecificos: {
-    // Para 'aceite'
-    tipoAceite?: string; // ej. 5W-30 Sintético
+    tipoAceite?: string;
     filtroCambiado?: boolean;
-    
-    // Para 'frenos'
     frenosDelanteros?: boolean;
     frenosTraseros?: boolean;
-    
-    // Para 'neumaticos'
     presionPSI?: number;
     rotacionRealizada?: boolean;
-    
-    // Para 'bateria'
     voltajeBateria?: number;
-    
-    // Para 'general'
     puntosInspeccionados?: number;
   };
 }

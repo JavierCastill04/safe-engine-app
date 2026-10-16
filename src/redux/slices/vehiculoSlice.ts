@@ -1,4 +1,3 @@
-
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { Vehiculo } from '@/types/Vehiculo';
 
@@ -8,25 +7,8 @@ interface VehiculosState {
 }
 
 const initialState: VehiculosState = {
-  vehiculos: [
-    {
-      id: '1',
-      marca: 'Toyota',
-      modelo: 'Corolla',
-      anio: 2020,
-      placa: 'P123-456',
-      kilometrajeActual: 45000,
-    },
-    {
-      id: '2',
-      marca: 'Honda',
-      modelo: 'Civic',
-      anio: 2022,
-      placa: 'P789-012',
-      kilometrajeActual: 22000,
-    },
-  ],
-  vehiculoSeleccionadoId: '1',
+  vehiculos: [], // Inicializado completamente vacío
+  vehiculoSeleccionadoId: null,
 };
 
 const vehiculoSlice = createSlice({
@@ -37,66 +19,38 @@ const vehiculoSlice = createSlice({
       state.vehiculos = [];
       state.vehiculoSeleccionadoId = null;
     },
-
-    agregarVehiculo: (
-      state,
-      action: PayloadAction<Omit<Vehiculo, 'id'>>
-    ) => {
+    agregarVehiculo: (state, action: PayloadAction<Omit<Vehiculo, 'id'>>) => {
       const nuevo: Vehiculo = {
         ...action.payload,
         id: Date.now().toString(),
       };
-
       state.vehiculos.push(nuevo);
+      if (!state.vehiculoSeleccionadoId) {
+        state.vehiculoSeleccionadoId = nuevo.id;
+      }
     },
-
-    actualizarVehiculo: (
-      state,
-      action: PayloadAction<Vehiculo>
-    ) => {
-      const indice = state.vehiculos.findIndex(
-        (vehiculo) => vehiculo.id === action.payload.id
-      );
-
+    actualizarVehiculo: (state, action: PayloadAction<Vehiculo>) => {
+      const indice = state.vehiculos.findIndex((vehiculo) => vehiculo.id === action.payload.id);
       if (indice !== -1) {
         state.vehiculos[indice] = action.payload;
       }
     },
-
-    eliminarVehiculo: (
-      state,
-      action: PayloadAction<string>
-    ) => {
-      state.vehiculos = state.vehiculos.filter(
-        (vehiculo) => vehiculo.id !== action.payload
-      );
-
+    eliminarVehiculo: (state, action: PayloadAction<string>) => {
+      state.vehiculos = state.vehiculos.filter((vehiculo) => vehiculo.id !== action.payload);
       if (state.vehiculoSeleccionadoId === action.payload) {
-        state.vehiculoSeleccionadoId = null;
+        state.vehiculoSeleccionadoId = state.vehiculos[0]?.id || null;
       }
     },
-
     actualizarKilometraje: (
       state,
-      action: PayloadAction<{
-        id: string;
-        nuevoKilometraje: number;
-      }>
+      action: PayloadAction<{ id: string; nuevoKilometraje: number }>
     ) => {
-      const vehiculo = state.vehiculos.find(
-        (v) => v.id === action.payload.id
-      );
-
+      const vehiculo = state.vehiculos.find((v) => v.id === action.payload.id);
       if (vehiculo) {
-        vehiculo.kilometrajeActual =
-          action.payload.nuevoKilometraje;
+        vehiculo.kilometrajeActual = action.payload.nuevoKilometraje;
       }
     },
-
-    seleccionarVehiculo: (
-      state,
-      action: PayloadAction<string>
-    ) => {
+    seleccionarVehiculo: (state, action: PayloadAction<string>) => {
       state.vehiculoSeleccionadoId = action.payload;
     },
   },
