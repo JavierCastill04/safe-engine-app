@@ -1,200 +1,161 @@
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  Image,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ShieldCheck } from 'lucide-react-native';
 
 import { auth } from '@/config/firebase';
 import { commonStyles, colores, espaciado } from '@/theme';
-import type { RootStackParamList } from '@/navigation/types';
 
-type RegisterNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'Register'
->;
-
-export default function RegisterScreen() {
-  const navigation = useNavigation<RegisterNavigationProp>();
-
+export const RegisterScreen = ({ navigation }: any) => {
   const [nombre, setNombre] = useState('');
   const [correo, setCorreo] = useState('');
-  const [contrasena, setContrasena] = useState('');
-  const [confirmarContrasena, setConfirmarContrasena] = useState('');
+  const [contrasenia, setContrasenia] = useState('');
+  const [confirmarContrasenia, setConfirmarContrasenia] = useState('');
+  const [mostrarContrasenia, setMostrarContrasenia] = useState(false);
   const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState('');
 
-  const registrarUsuario = async () => {
-    setError('');
-
-    if (!nombre.trim() || !correo.trim() || !contrasena || !confirmarContrasena) {
-      setError('Completa todos los campos.');
+  const handleRegistro = async () => {
+    if (!nombre.trim() || !correo.trim() || !contrasenia.trim()) {
+      Alert.alert('Campos vacíos', 'Por favor completa todos los datos requeridos.');
       return;
     }
 
-    if (contrasena.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.');
-      return;
-    }
-
-    if (contrasena !== confirmarContrasena) {
-      setError('Las contraseñas no coinciden.');
+    if (contrasenia !== confirmarContrasenia) {
+      Alert.alert('Contraseñas diferentes', 'Las contraseñas ingresadas no coinciden.');
       return;
     }
 
     setCargando(true);
-
     try {
-      const credencial = await createUserWithEmailAndPassword(
-        auth,
-        correo.trim().toLowerCase(),
-        contrasena
-      );
-
-      await updateProfile(credencial.user, {
-        displayName: nombre.trim(),
-      });
-
-      Alert.alert(
-        'Registro exitoso',
-        'Tu cuenta se ha creado correctamente.'
-      );
-    } catch (err: any) {
-      switch (err.code) {
-        case 'auth/email-already-in-use':
-          setError('Este correo ya está registrado.');
-          break;
-        case 'auth/invalid-email':
-          setError('El correo electrónico no es válido.');
-          break;
-        case 'auth/weak-password':
-          setError('La contraseña es demasiado débil.');
-          break;
-        case 'auth/network-request-failed':
-          setError('No se pudo conectar. Revisa tu conexión a Internet.');
-          break;
-        default:
-          setError('No se pudo crear la cuenta. Inténtalo nuevamente.');
+      const userCredential = await createUserWithEmailAndPassword(auth, correo.trim(), contrasenia);
+      await updateProfile(userCredential.user, { displayName: nombre.trim() });
+    } catch (error: any) {
+      console.error(error);
+      let mensaje = 'Ocurrió un error en el registro. Inténtalo de nuevo.';
+      if (error.code === 'auth/email-already-in-use') {
+        mensaje = 'Este correo ya se encuentra registrado.';
+      } else if (error.code === 'auth/weak-password') {
+        mensaje = 'La contraseña debe tener al menos 6 caracteres.';
       }
+      Alert.alert('Error de registro', mensaje);
     } finally {
       setCargando(false);
     }
   };
 
   return (
-    <View style={commonStyles.containerScreen}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={commonStyles.authScrollContent}
-        >
-          {/* Tarjeta de Registro */}
-          <View style={[commonStyles.surface, { padding: espaciado.xl, width: '100%' }]}>
-            
-            <View style={{ alignItems: 'center', marginBottom: espaciado.md }}>
-              <ShieldCheck size={48} color={colores.enfasis} strokeWidth={2.2} />
-              <Text style={[commonStyles.title, { marginTop: espaciado.xs, textAlign: 'center' }]}>
-                Crear cuenta
-              </Text>
-              <Text style={[commonStyles.secondaryText, { textAlign: 'center' }]}>
-                Regístrate para comenzar con Safe Engine
-              </Text>
-            </View>
+    <ScrollView
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+      style={commonStyles.containerScreen}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={{ alignItems: 'center', marginBottom: espaciado.md }}>
+        {/* Logo actualizado a la ruta exacta de tus assets */}
+        <Image
+          source={require('@/assets/Cuarta version.jpg')}
+          style={{ width: 100, height: 100, borderRadius: 12, marginBottom: espaciado.xs }}
+          resizeMode="contain"
+        />
+        <Text style={[commonStyles.title, { marginBottom: 2 }]}>Safe Engine</Text>
+        <Text style={commonStyles.secondaryText}>Crea tu cuenta de gestión</Text>
+      </View>
 
-            <View style={commonStyles.inputView}>
-              <Text style={commonStyles.label}>Nombre completo</Text>
-              <TextInput
-                style={commonStyles.input}
-                placeholder="Tu nombre"
-                placeholderTextColor={colores.gris}
-                value={nombre}
-                onChangeText={setNombre}
-                autoCapitalize="words"
-              />
-            </View>
+      <View style={[commonStyles.surface, { padding: espaciado.lg, borderRadius: 12, gap: espaciado.sm }]}>
+        <Text style={[commonStyles.heading, { fontSize: 18, marginBottom: 4 }]}>Registrarse</Text>
 
-            <View style={commonStyles.inputView}>
-              <Text style={commonStyles.label}>Correo electrónico</Text>
-              <TextInput
-                style={commonStyles.input}
-                placeholder="correo@ejemplo.com"
-                placeholderTextColor={colores.gris}
-                value={correo}
-                onChangeText={setCorreo}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-            </View>
-
-            <View style={commonStyles.inputView}>
-              <Text style={commonStyles.label}>Contraseña</Text>
-              <TextInput
-                style={commonStyles.input}
-                placeholder="Mínimo 6 caracteres"
-                placeholderTextColor={colores.gris}
-                value={contrasena}
-                onChangeText={setContrasena}
-                secureTextEntry
-                autoComplete="new-password"
-              />
-            </View>
-
-            <View style={commonStyles.inputView}>
-              <Text style={commonStyles.label}>Confirmar contraseña</Text>
-              <TextInput
-                style={commonStyles.input}
-                placeholder="Repite tu contraseña"
-                placeholderTextColor={colores.gris}
-                value={confirmarContrasena}
-                onChangeText={setConfirmarContrasena}
-                secureTextEntry
-              />
-            </View>
-
-            {error ? (
-              <Text style={commonStyles.errorText}>{error}</Text>
-            ) : null}
-
-            <TouchableOpacity
-              style={[commonStyles.button, { marginTop: espaciado.md }]}
-              onPress={registrarUsuario}
-              disabled={cargando}
-              accessibilityRole="button"
-            >
-              {cargando ? (
-                <ActivityIndicator color={colores.blanco} />
-              ) : (
-                <Text style={commonStyles.buttonText}>Registrarse</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Login')}
-              style={{ marginTop: espaciado.md, alignItems: 'center' }}
-              accessibilityRole="button"
-            >
-              <Text style={commonStyles.secondaryText}>
-                ¿Ya tienes una cuenta? <Text style={{ color: colores.primario, fontWeight: 'bold' }}>Inicia sesión</Text>
-              </Text>
-            </TouchableOpacity>
-
+        <View style={commonStyles.inputView}>
+          <Text style={commonStyles.label}>Nombre Completo</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colores.fondo, borderRadius: 8, borderWidth: 1, borderColor: colores.borde }}>
+            <User size={18} color={colores.gris} style={{ marginLeft: 12 }} />
+            <TextInput
+              style={[commonStyles.input, { flex: 1, borderWidth: 0, height: 44 }]}
+              placeholder="Juan Pérez"
+              placeholderTextColor={colores.gris}
+              value={nombre}
+              onChangeText={setNombre}
+            />
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+        </View>
+
+        <View style={commonStyles.inputView}>
+          <Text style={commonStyles.label}>Correo Electrónico</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colores.fondo, borderRadius: 8, borderWidth: 1, borderColor: colores.borde }}>
+            <Mail size={18} color={colores.gris} style={{ marginLeft: 12 }} />
+            <TextInput
+              style={[commonStyles.input, { flex: 1, borderWidth: 0, height: 44 }]}
+              placeholder="juan@correo.com"
+              placeholderTextColor={colores.gris}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={correo}
+              onChangeText={setCorreo}
+            />
+          </View>
+        </View>
+
+        <View style={commonStyles.inputView}>
+          <Text style={commonStyles.label}>Contraseña</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colores.fondo, borderRadius: 8, borderWidth: 1, borderColor: colores.borde }}>
+            <Lock size={18} color={colores.gris} style={{ marginLeft: 12 }} />
+            <TextInput
+              style={[commonStyles.input, { flex: 1, borderWidth: 0, height: 44 }]}
+              placeholder="Mínimo 6 caracteres"
+              placeholderTextColor={colores.gris}
+              secureTextEntry={!mostrarContrasenia}
+              autoCapitalize="none"
+              value={contrasenia}
+              onChangeText={setContrasenia}
+            />
+            <TouchableOpacity onPress={() => setMostrarContrasenia(!mostrarContrasenia)} style={{ paddingHorizontal: 12 }}>
+              {mostrarContrasenia ? <EyeOff size={18} color={colores.gris} /> : <Eye size={18} color={colores.gris} />}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={commonStyles.inputView}>
+          <Text style={commonStyles.label}>Confirmar Contraseña</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colores.fondo, borderRadius: 8, borderWidth: 1, borderColor: colores.borde }}>
+            <Lock size={18} color={colores.gris} style={{ marginLeft: 12 }} />
+            <TextInput
+              style={[commonStyles.input, { flex: 1, borderWidth: 0, height: 44 }]}
+              placeholder="Repite tu contraseña"
+              placeholderTextColor={colores.gris}
+              secureTextEntry={!mostrarContrasenia}
+              autoCapitalize="none"
+              value={confirmarContrasenia}
+              onChangeText={setConfirmarContrasenia}
+            />
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[commonStyles.button, { marginTop: espaciado.sm, height: 46, justifyContent: 'center' }]}
+          onPress={handleRegistro}
+          disabled={cargando}
+        >
+          {cargando ? <ActivityIndicator color={colores.blanco} /> : <Text style={commonStyles.buttonText}>Registrarse</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Login')}
+          style={{ alignItems: 'center', marginTop: espaciado.xs }}
+        >
+          <Text style={{ color: colores.primario, fontWeight: '600', fontSize: 13 }}>
+            ¿Ya tienes cuenta? Inicia sesión aquí
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
-}
+};
+
+export default RegisterScreen;
