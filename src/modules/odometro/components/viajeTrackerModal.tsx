@@ -1,12 +1,10 @@
-// src/modules/viajes/components/ViajeTrackerModal.tsx
+import React, { useState } from 'react';
+import { Modal, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { Navigation, Play, Square, Check } from 'lucide-react-native';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import * as Location from 'expo-location';
 import { useAppDispatch } from '@/redux/hooks';
 import { actualizarKilometraje } from '@/redux/slices/vehiculoSlice';
 import { commonStyles, colores, espaciado } from '@/theme';
-import { calcularDistanciaMetros} from '@/modules/odometro/utils/geoUtils';
 
 interface Props {
   visible: boolean;
@@ -22,150 +20,108 @@ export const ViajeTrackerModal: React.FC<Props> = ({
   onClose,
 }) => {
   const dispatch = useAppDispatch();
-  const [enViaje, setEnViaje] = useState(false);
+
+  const [enRuta, setEnRuta] = useState(false);
   const [distanciaRecorrida, setDistanciaRecorrida] = useState(0);
 
-  const ultimaUbicacion = useRef<Location.LocationObject | null>(null);
-  const subscription = useRef<Location.LocationSubscription | null>(null);
+  const formatearNumero = (num: number) => num.toFixed(1).replace(',', '.');
 
-  // Iniciar Rastreos GPS
-  const iniciarViaje = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Se requiere acceso a la ubicación para registrar el viaje.');
+  const handleIniciarViaje = () => {
+    setEnRuta(true);
+    setDistanciaRecorrida(0);
+  };
+
+  const handleDetenerViaje = () => {
+    // Simulación de adición o parada de tracker
+    setEnRuta(false);
+  };
+
+  const handleGuardarViaje = () => {
+    if (distanciaRecorrida <= 0) {
+      Alert.alert('Aviso', 'No se ha registrado distancia en este viaje.');
+      onClose();
       return;
     }
 
-    setDistanciaRecorrida(0);
-    setEnViaje(true);
-    ultimaUbicacion.current = null;
-
-    // Escuchar ubicación en tiempo real
-    subscription.current = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.High,
-        distanceInterval: 10, // Actualiza cada 10 metros
-      },
-      (location) => {
-        if (ultimaUbicacion.current) {
-          const delta = calcularDistanciaMetros(
-            ultimaUbicacion.current.coords.latitude,
-            ultimaUbicacion.current.coords.longitude,
-            location.coords.latitude,
-            location.coords.longitude
-          );
-          setDistanciaRecorrida((prev) => prev + delta);
-        }
-        ultimaUbicacion.current = location;
-      }
-    );
-  };
-
-  // Finalizar Viaje y Actualizar Kilometraje del Vehículo
-  const finalizarViaje = () => {
-    if (subscription.current) {
-      subscription.current.remove();
-      subscription.current = null;
-    }
-
-    const kmGanados = Math.round(distanciaRecorrida);
-    const nuevoKilometraje = kilometrajeActual + kmGanados;
-
-    // Actualizar el kilometraje global del vehículo en Redux
-    dispatch(actualizarKilometraje({ id: vehiculoId, nuevoKilometraje }));
+    const nuevoTotal = (kilometrajeActual || 0) + distanciaRecorrida;
 
     Alert.alert(
-      'Viaje Finalizado',
-      `Recorriste ${distanciaRecorrida.toFixed(2)} km. El nuevo kilometraje es ${nuevoKilometraje.toLocaleString()} km.`
+      'Confirmar Viaje',
+      `¿Deseas agregar ${formatearNumero(distanciaRecorrida)} km al odómetro actual? Nuevo total: ${formatearNumero(nuevoTotal)} km`,
+      [
+        { text: 'Descartar', style: 'cancel', onPress: onClose },
+        {
+          text: 'Guardar',
+          onPress: () => {
+            dispatch(
+              actualizarKilometraje({
+                id: vehiculoId,
+                nuevoKilometraje: nuevoTotal,
+              })
+            );
+            setDistanciaRecorrida(0);
+            onClose();
+          },
+        },
+      ]
     );
-
-    setEnViaje(false);
-    onClose();
   };
 
-  useEffect(() => {
-    return () => {
-      if (subscription.current) {
-        subscription.current.remove();
-      }
-    };
-  }, []);
-
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.overlay}>
-        <View style={[commonStyles.surface, styles.modalContainer]}>
-          <Text style={commonStyles.title}>Registro de Viaje (GPS)</Text>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={commonStyles.modalOverlay}>
+        <View style={commonStyles.modal}>
+          <Text style={commonStyles.title}>Seguimiento de Viaje (GPS)</Text>
 
-          <View style={styles.metricsContainer}>
-            <Text style={{ color: colores.textoSecundario }}>Distancia Recorrida:</Text>
-            <Text style={styles.distanciaText}>{distanciaRecorrida.toFixed(2)} km</Text>
+          <View style={{ alignItems: 'center', marginVertical: espaciado.lg }}>
+            <Navigation size={48} color={enRuta ? colores.primario : colores.gris} />
+            <Text style={[commonStyles.secondaryText, { marginTop: espaciado.xs }]}>
+              {enRuta ? 'Registrando trayecto...' : 'Listo para iniciar'}
+            </Text>
+            <Text style={[commonStyles.title, { fontSize: 36, marginTop: espaciado.xs }]}>
+              {formatearNumero(distanciaRecorrida)} <Text style={{ fontSize: 18 }}>km</Text>
+            </Text>
           </View>
 
-          {!enViaje ? (
-            <TouchableOpacity style={styles.btnIniciar} onPress={iniciarViaje}>
-              <Text style={styles.btnTexto}>Iniciar Viaje</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.btnFinalizar} onPress={finalizarViaje}>
-              <Text style={styles.btnTexto}>Finalizar y Guardar Viaje</Text>
-            </TouchableOpacity>
-          )}
+          <View style={{ gap: espaciado.sm }}>
+            {!enRuta ? (
+              <TouchableOpacity
+                style={[commonStyles.button, { flexDirection: 'row', justifyContent: 'center', gap: 8 }]}
+                onPress={handleIniciarViaje}
+              >
+                <Play size={18} color={colores.blanco} />
+                <Text style={commonStyles.buttonText}>Iniciar GPS</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[commonStyles.button, { backgroundColor: colores.rojo, flexDirection: 'row', justifyContent: 'center', gap: 8 }]}
+                onPress={handleDetenerViaje}
+              >
+                <Square size={18} color={colores.blanco} />
+                <Text style={commonStyles.buttonText}>Detener Viaje</Text>
+              </TouchableOpacity>
+            )}
 
-          {!enViaje && (
-            <TouchableOpacity style={styles.btnCancelar} onPress={onClose}>
-              <Text style={{ color: colores.textoSecundario }}>Cancelar</Text>
+            {!enRuta && distanciaRecorrida > 0 && (
+              <TouchableOpacity
+                style={[commonStyles.button, { backgroundColor: colores.primario, flexDirection: 'row', justifyContent: 'center', gap: 8 }]}
+                onPress={handleGuardarViaje}
+              >
+                <Check size={18} color={colores.blanco} />
+                <Text style={commonStyles.buttonText}>Guardar en Odómetro</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={commonStyles.modalButtonCancelar}
+              onPress={onClose}
+              disabled={enRuta}
+            >
+              <Text style={commonStyles.modalButtonCancelarText}>Cerrar</Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
       </View>
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    padding: espaciado.md,
-  },
-  modalContainer: {
-    padding: espaciado.lg,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  metricsContainer: {
-    marginVertical: espaciado.lg,
-    alignItems: 'center',
-  },
-  distanciaText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: colores.primario,
-  },
-  btnIniciar: {
-    backgroundColor: '#2ecc71',
-    paddingVertical: espaciado.md,
-    paddingHorizontal: espaciado.xl,
-    borderRadius: 8,
-    width: '100%',
-    alignItems: 'center',
-  },
-  btnFinalizar: {
-    backgroundColor: '#e74c3c',
-    paddingVertical: espaciado.md,
-    paddingHorizontal: espaciado.xl,
-    borderRadius: 8,
-    width: '100%',
-    alignItems: 'center',
-  },
-  btnTexto: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  btnCancelar: {
-    marginTop: espaciado.md,
-  },
-});
