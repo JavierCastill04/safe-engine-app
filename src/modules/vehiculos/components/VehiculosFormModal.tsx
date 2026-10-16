@@ -1,35 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  Alert,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
-  ScrollView,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  ScrollView,
+  Alert,
 } from 'react-native';
 
 import { useAppDispatch } from '@/redux/hooks';
-import {
-  agregarVehiculo,
-  actualizarVehiculo,
-} from '@/redux/slices/vehiculoSlice';
-import type { Vehiculo } from '@/types/Vehiculo';
-import { commonStyles, colores } from '@/theme';
+import { agregarVehiculo } from '@/redux/slices/vehiculoSlice';
+import { commonStyles, colores, espaciado } from '@/theme';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  vehiculo?: Vehiculo | null;
 }
 
-export const VehiculoFormModal: React.FC<Props> = ({
-  visible,
-  onClose,
-  vehiculo = null,
-}) => {
+export const VehiculoFormModal: React.FC<Props> = ({ visible, onClose }) => {
   const dispatch = useAppDispatch();
 
   const [marca, setMarca] = useState('');
@@ -38,181 +27,125 @@ export const VehiculoFormModal: React.FC<Props> = ({
   const [placa, setPlaca] = useState('');
   const [kilometraje, setKilometraje] = useState('');
 
-  useEffect(() => {
-    if (visible && vehiculo) {
-      setMarca(vehiculo.marca);
-      setModelo(vehiculo.modelo);
-      setAnio(String(vehiculo.anio));
-      setPlaca(vehiculo.placa);
-      setKilometraje(String(vehiculo.kilometrajeActual));
-    } else if (visible) {
-      limpiarFormulario();
+  const handleGuardar = () => {
+    if (!marca.trim() || !modelo.trim() || !placa.trim()) {
+      Alert.alert('Campos incompletos', 'Por favor ingresa la marca, modelo y placa del vehículo.');
+      return;
     }
-  }, [visible, vehiculo]);
 
-  const limpiarFormulario = () => {
+    const anioNum = parseInt(anio, 10) || new Date().getFullYear();
+    const kmNum = parseFloat(String(kilometraje || '0').replace(',', '.')) || 0;
+
+    if (kmNum < 0) {
+      Alert.alert('Valor inválido', 'El kilometraje no puede ser un valor negativo.');
+      return;
+    }
+
+    // Se remueve 'id' ya que el slice lo genera automáticamente
+    dispatch(
+      agregarVehiculo({
+        marca: marca.trim(),
+        modelo: modelo.trim(),
+        anio: anioNum,
+        placa: placa.trim().toUpperCase(),
+        kilometrajeActual: kmNum,
+      })
+    );
+
+    // Limpieza de campos y cierre
     setMarca('');
     setModelo('');
     setAnio('');
     setPlaca('');
     setKilometraje('');
-  };
-
-  const cerrar = () => {
-    limpiarFormulario();
     onClose();
   };
 
-  const guardar = () => {
-    if (
-      !marca.trim() ||
-      !modelo.trim() ||
-      !placa.trim() ||
-      !anio.trim() ||
-      !kilometraje.trim()
-    ) {
-      Alert.alert(
-        'Campos incompletos',
-        'Completa todos los campos antes de guardar.'
-      );
-      return;
-    }
-
-    const anioNumero = Number(anio);
-    const kmNumero = Number(kilometraje);
-    const anioActual = new Date().getFullYear();
-
-    if (
-      !Number.isInteger(anioNumero) ||
-      anioNumero < 1886 ||
-      anioNumero > anioActual + 1
-    ) {
-      Alert.alert('Año inválido', 'Ingresa un año válido.');
-      return;
-    }
-
-    if (!Number.isFinite(kmNumero) || kmNumero < 0) {
-      Alert.alert(
-        'Kilometraje inválido',
-        'Ingresa un kilometraje igual o mayor que cero.'
-      );
-      return;
-    }
-
-    const datosVehiculo = {
-      marca: marca.trim(),
-      modelo: modelo.trim(),
-      anio: anioNumero,
-      placa: placa.trim().toUpperCase(),
-      kilometrajeActual: kmNumero,
-    };
-
-    if (vehiculo) {
-      dispatch(
-        actualizarVehiculo({
-          ...datosVehiculo,
-          id: vehiculo.id,
-        })
-      );
-
-      Alert.alert('Vehículo actualizado', 'Los cambios se guardaron correctamente.');
-    } else {
-      dispatch(agregarVehiculo(datosVehiculo));
-
-      Alert.alert('Vehículo registrado', 'El vehículo se agregó correctamente.');
-    }
-
-    cerrar();
-  };
-
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={cerrar}
-    >
-      <KeyboardAvoidingView
-        style={commonStyles.modalOverlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={commonStyles.modalOverlay}>
         <View style={commonStyles.modal}>
-          <Text style={commonStyles.title}>
-            {vehiculo ? 'Editar vehículo' : 'Registrar vehículo'}
-          </Text>
-
           <ScrollView keyboardShouldPersistTaps="handled">
-            <Text style={commonStyles.label}>Marca</Text>
-            <TextInput
-              style={commonStyles.input}
-              value={marca}
-              onChangeText={setMarca}
-              placeholder="Ej. Toyota"
-              placeholderTextColor={colores.gris}
-            />
+            <Text style={commonStyles.title}>Agregar Nuevo Vehículo</Text>
 
-            <Text style={commonStyles.label}>Modelo</Text>
-            <TextInput
-              style={commonStyles.input}
-              value={modelo}
-              onChangeText={setModelo}
-              placeholder="Ej. Corolla"
-              placeholderTextColor={colores.gris}
-            />
+            <View style={commonStyles.inputView}>
+              <Text style={commonStyles.label}>Marca</Text>
+              <TextInput
+                style={commonStyles.input}
+                placeholder="Ej. Toyota"
+                placeholderTextColor={colores.gris}
+                value={marca}
+                onChangeText={setMarca}
+              />
+            </View>
 
-            <Text style={commonStyles.label}>Año</Text>
-            <TextInput
-              style={commonStyles.input}
-              value={anio}
-              onChangeText={setAnio}
-              keyboardType="numeric"
-              maxLength={4}
-              placeholder="Ej. 2022"
-              placeholderTextColor={colores.gris}
-            />
+            <View style={commonStyles.inputView}>
+              <Text style={commonStyles.label}>Modelo</Text>
+              <TextInput
+                style={commonStyles.input}
+                placeholder="Ej. Corolla"
+                placeholderTextColor={colores.gris}
+                value={modelo}
+                onChangeText={setModelo}
+              />
+            </View>
 
-            <Text style={commonStyles.label}>Placa o matrícula</Text>
-            <TextInput
-              style={commonStyles.input}
-              value={placa}
-              onChangeText={setPlaca}
-              autoCapitalize="characters"
-              placeholder="Ej. P123-456"
-              placeholderTextColor={colores.gris}
-            />
+            <View style={commonStyles.inputView}>
+              <Text style={commonStyles.label}>Año</Text>
+              <TextInput
+                style={commonStyles.input}
+                placeholder="Ej. 2020"
+                placeholderTextColor={colores.gris}
+                keyboardType="numeric"
+                value={anio}
+                onChangeText={setAnio}
+              />
+            </View>
 
-            <Text style={commonStyles.label}>Kilometraje actual</Text>
-            <TextInput
-              style={commonStyles.input}
-              value={kilometraje}
-              onChangeText={setKilometraje}
-              keyboardType="numeric"
-              placeholder="Ej. 45000"
-              placeholderTextColor={colores.gris}
-            />
+            <View style={commonStyles.inputView}>
+              <Text style={commonStyles.label}>Placa</Text>
+              <TextInput
+                style={commonStyles.input}
+                placeholder="Ej. P123-456"
+                placeholderTextColor={colores.gris}
+                autoCapitalize="characters"
+                value={placa}
+                onChangeText={setPlaca}
+              />
+            </View>
 
-            <View style={commonStyles.modalButtons}>
+            <View style={commonStyles.inputView}>
+              <Text style={commonStyles.label}>Kilometraje Inicial (km)</Text>
+              <TextInput
+                style={commonStyles.input}
+                placeholder="Ej. 45000.0"
+                placeholderTextColor={colores.gris}
+                keyboardType="numeric"
+                value={kilometraje}
+                onChangeText={setKilometraje}
+              />
+            </View>
+
+            <View style={[commonStyles.modalButtons, { marginTop: espaciado.md }]}>
               <TouchableOpacity
                 style={commonStyles.modalButtonCancelar}
-                onPress={cerrar}
+                onPress={onClose}
               >
-                <Text style={commonStyles.modalButtonCancelarText}>
-                  Cancelar
-                </Text>
+                <Text style={commonStyles.modalButtonCancelarText}>Cancelar</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={commonStyles.modalButton}
-                onPress={guardar}
+                onPress={handleGuardar}
               >
-                <Text style={commonStyles.buttonText}>
-                  {vehiculo ? 'Guardar cambios' : 'Registrar'}
-                </Text>
+                <Text style={commonStyles.buttonText}>Guardar</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 };
+
+export default VehiculoFormModal;

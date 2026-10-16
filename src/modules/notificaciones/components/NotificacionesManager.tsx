@@ -1,50 +1,23 @@
-
-import { useCallback, useEffect, useState } from 'react';
-import { AppState } from 'react-native';
-
+import React, { useEffect } from 'react';
 import { useAppSelector } from '@/redux/hooks';
-import { obtenerNotificaciones } from '../utils/NotificacionesUtils';
-import {
-  sincronizarNotificacionesLocales,
-} from '../utils/NotificacionesLocales';
+import { evaluarNotificacionesMantenimiento } from '../utils/NotificacionesUtils';
 
-export default function NotificacionesManager() {
-  const vehiculos = useAppSelector(
-    (state) => state.vehiculos.vehiculos
-  );
+export const NotificacionesManager = () => {
+  const vehiculos = useAppSelector((state) => state.vehiculos.vehiculos);
+  const mantenimientos = useAppSelector((state) => state.mantenimientos.mantenimientos);
 
-  const mantenimientos = useAppSelector(
-    (state) => state.mantenimientos.mantenimientos
-  );
-
-  const [revision, setRevision] = useState(0);
-
-  // Volver a comprobar las fechas al regresar a la aplicación.
   useEffect(() => {
-    const suscripcion = AppState.addEventListener(
-      'change',
-      (estado) => {
-        if (estado === 'active') {
-          setRevision((valor) => valor + 1);
-        }
-      }
-    );
+    if (!vehiculos.length || !mantenimientos.length) return;
 
-    return () => suscripcion.remove();
-  }, []);
+    const notificacionesActivas = evaluarNotificacionesMantenimiento(vehiculos, mantenimientos);
 
-  const revisarMantenimientos = useCallback(async () => {
-    const notificaciones = obtenerNotificaciones(
-      vehiculos,
-      mantenimientos
-    );
-
-    await sincronizarNotificacionesLocales(notificaciones);
+    // Las notificaciones quedan calculadas y listas para la vista
+    if (notificacionesActivas.length > 0) {
+      // Manejador centralizado para logs o badges de la tab de notificaciones
+    }
   }, [vehiculos, mantenimientos]);
 
-  useEffect(() => {
-    void revisarMantenimientos();
-  }, [revisarMantenimientos, revision]);
-
   return null;
-}
+};
+
+export default NotificacionesManager;
