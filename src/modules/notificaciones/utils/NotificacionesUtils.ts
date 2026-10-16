@@ -1,145 +1,61 @@
+import type { Mantenimiento, Vehiculo } from '@/types';
 
-import type {
-  Vehiculo,
-  Mantenimiento,
-  TipoMantenimiento,
-} from '@/types';
-
-import {
-  calcularProximoMantenimiento,
-  type ProximoMantenimiento,
-} from '@/modules/mantenimientos/utils/calculoMantenimientos';
-
-export interface NotificacionMantenimiento {
+export interface NotificacionItem {
   id: string;
   vehiculoId: string;
   vehiculoNombre: string;
-  tipo: TipoMantenimiento;
   titulo: string;
   mensaje: string;
-  estado: 'proximo' | 'vencido';
-  fecha: string;
-  kilometraje: number;
+  tipo: 'vencido' | 'proximo';
+  kilometrajeLímite?: number;
 }
 
-const TIPOS_MANTENIMIENTO: TipoMantenimiento[] = [
-  'aceite',
-  'frenos',
-  'neumaticos',
-  'bateria',
-  'general',
-];
-
-const nombresMantenimiento: Record<TipoMantenimiento, string> = {
-  aceite: 'Cambio de aceite',
-  frenos: 'Revisión de frenos',
-  neumaticos: 'Mantenimiento de neumáticos',
-  bateria: 'Revisión de batería',
-  general: 'Mantenimiento general',
-};
-
-const generarMensaje = (
-  proximo: ProximoMantenimiento
-): string => {
-  const {
-    estado,
-    vencidoPorFecha,
-    vencidoPorKilometraje,
-    kmRestantes,
-    diasRestantes,
-  } = proximo;
-
-  if (estado === 'vencido') {
-    if (vencidoPorFecha && vencidoPorKilometraje) {
-      return (
-        'Este mantenimiento está vencido por fecha y ' +
-        'kilometraje. Se recomienda realizarlo cuanto antes.'
-      );
-    }
-
-    if (vencidoPorFecha) {
-      return (
-        'Este mantenimiento está vencido por fecha. ' +
-        `Han transcurrido ${Math.abs(diasRestantes)} días ` +
-        'desde la fecha recomendada.'
-      );
-    }
-
-    return (
-      'Este mantenimiento está vencido por kilometraje. ' +
-      `Se ha superado el límite recomendado por ` +
-      `${Math.abs(kmRestantes).toLocaleString()} km.`
-    );
-  }
-
-  const detalles: string[] = [];
-
-  if (diasRestantes <= 15) {
-    detalles.push(
-      `faltan ${diasRestantes} días para la fecha recomendada`
-    );
-  }
-
-  if (kmRestantes <= 1000) {
-    detalles.push(
-      `faltan ${kmRestantes.toLocaleString()} km para el límite recomendado`
-    );
-  }
-
-  return (
-    'Este mantenimiento está próximo: ' +
-    detalles.join(' y ') +
-    '.'
-  );
-};
-
-export const obtenerNotificaciones = (
+export const evaluarNotificacionesMantenimiento = (
   vehiculos: Vehiculo[],
   mantenimientos: Mantenimiento[]
-): NotificacionMantenimiento[] => {
-  const notificaciones: NotificacionMantenimiento[] = [];
+): NotificacionItem[] => {
+  const notificaciones: NotificacionItem[] = [];
 
   vehiculos.forEach((vehiculo) => {
     const mantenimientosVehiculo = mantenimientos.filter(
-      (mantenimiento) =>
-        mantenimiento.vehiculoId === vehiculo.id
+      (m) => m.vehiculoId === vehiculo.id
     );
 
-    TIPOS_MANTENIMIENTO.forEach((tipo) => {
-      const proximo = calcularProximoMantenimiento(
-        mantenimientosVehiculo,
-        tipo,
-        vehiculo.kilometrajeActual
-      );
+    mantenimientosVehiculo.forEach((mantenimiento) => {
+      const kmRealizado = mantenimiento.kilometraje || mantenimiento.kilometrajeRealiz || 0;
+      const intervalo = mantenimiento.intervaloKm || 5000;
+      const kmLimite = mantenimiento.siguienteMantenimientoKm || (kmRealizado + intervalo);
 
-      if (!proximo || proximo.estado === 'al_dia') {
-        return;
+      const diferenciaKm = kmLimite - vehiculo.kilometrajeActual;
+
+      // Condición 1: Vencido (se pasó del límite)
+      if (diferenciaKm <= 0) {
+        const kmExcedidos = Math.abs(diferenciaKm).toFixed(1).replace(',', '.');
+        notificaciones.push({
+          id: `vencido-${mantenimiento.id}`,
+          vehiculoId: vehiculo.id,
+          vehiculoNombre: `${vehiculo.marca} ${vehiculo.modelo}`,
+          titulo: `Mantenimiento Vencido: ${mantenimiento.tipo.toUpperCase()}`,
+          mensaje: `Se ha superado el límite sugerido por ${kmExcedidos} km. Por favor realiza la revisión.`,
+          tipo: 'vencido',
+          kilometrajeLímite: kmLimite,
+        });
       }
-
-      const nombreTipo = nombresMantenimiento[tipo];
-      const vencido = proximo.estado === 'vencido';
-
-      notificaciones.push({
-        id: `${vehiculo.id}-${tipo}`,
-        vehiculoId: vehiculo.id,
-        vehiculoNombre: `${vehiculo.marca} ${vehiculo.modelo}`,
-        tipo,
-        titulo: vencido
-          ? `Mantenimiento pendiente: ${nombreTipo}`
-          : `Mantenimiento próximo: ${nombreTipo}`,
-        mensaje: generarMensaje(proximo),
-        estado: proximo.estado,
-        fecha: proximo.proximaFechaEstimada,
-        kilometraje: proximo.proximoKilometraje,
-      });
+      // Condición 2: Próximo (faltan 500 km o menos)
+      else if (diferenciaKm <= 500) {
+        const kmRestantes = diferenciaKm.toFixed(1).replace(',', '.');
+        notificaciones.push({
+          id: `proximo-${mantenimiento.id}`,
+          vehiculoId: vehiculo.id,
+          vehiculoNombre: `${vehiculo.marca} ${vehiculo.modelo}`,
+          titulo: `Próximo Mantenimiento: ${mantenimiento.tipo.toUpperCase()}`,
+          mensaje: `Faltan ${kmRestantes} km para alcanzar el límite de ${kmLimite.toFixed(1).replace(',', '.')} km.`,
+          tipo: 'proximo',
+          kilometrajeLímite: kmLimite,
+        });
+      }
     });
   });
 
-  return notificaciones.sort((a, b) => {
-    if (a.estado !== b.estado) {
-      return a.estado === 'vencido' ? -1 : 1;
-    }
-
-    return a.fecha.localeCompare(b.fecha);
-  });
+  return notificaciones;
 };

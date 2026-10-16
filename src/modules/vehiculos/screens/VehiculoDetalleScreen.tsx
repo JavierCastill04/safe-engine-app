@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { shallowEqual, useSelector } from 'react-redux';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import type { RootState } from '@/redux/store';
 import { actualizarKilometraje } from '@/redux/slices/vehiculoSlice';
 import { ProximosMantenimientosCard } from '@/modules/mantenimientos/components/ProximosMantenimientosCard';
 import { MantenimientoFormModal } from '@/modules/mantenimientos/components/MantenimientoFormModal';
@@ -23,15 +25,20 @@ export const VehiculoDetalleScreen: React.FC<Props> = ({ route }) => {
   const [mantenimientoModalVisible, setMantenimientoModalVisible] = useState(false);
   const [viajeModalVisible, setViajeModalVisible] = useState(false);
 
+  // Obtener vehículo seleccionado
   const vehiculo = useAppSelector((state) =>
     state.vehiculos.vehiculos.find((v) => v.id === vehiculoId)
   );
 
-  const mantenimientos = useAppSelector((state) =>
-    state.mantenimientos.mantenimientos.filter((m) => m.vehiculoId === vehiculoId)
-  );
+  // Selector seguro y memorizado para evitar re-renders y errores de tipo
+  const mantenimientos = useSelector((state: RootState) => {
+    const lista = state.mantenimientos?.mantenimientos;
+    if (!Array.isArray(lista)) return [];
+    return lista.filter((m) => m && m.vehiculoId === vehiculoId);
+  }, shallowEqual);
 
-  const formatearDecimales = (num: number) => {
+  const formatearDecimales = (num?: number) => {
+    if (typeof num !== 'number' || isNaN(num)) return '0.0';
     return num.toFixed(1).replace(',', '.');
   };
 
@@ -172,34 +179,37 @@ export const VehiculoDetalleScreen: React.FC<Props> = ({ route }) => {
             No hay mantenimientos registrados aún.
           </Text>
         ) : (
-          mantenimientos.map((m) => (
-            <View
-              key={m.id}
-              style={[
-                commonStyles.surface,
-                { padding: espaciado.md, borderRadius: 8, marginBottom: espaciado.sm },
-              ]}
-            >
-              <Text style={{ color: colores.texto, fontWeight: 'bold' }}>
-                {m.tipo.toUpperCase()} - {m.fecha}
-              </Text>
-              <Text style={{ color: colores.textoSecundario }}>
-                {formatearDecimales(m.kilometraje || m.kilometrajeRealiz || 0)} km | \$
-                {formatearDecimales(m.costo)}
-              </Text>
-              {(m.notas || m.descripcion) && (
-                <Text
-                  style={{
-                    color: colores.textoSecundario,
-                    fontStyle: 'italic',
-                    marginTop: 4,
-                  }}
-                >
-                  "{m.notas || m.descripcion}"
+          mantenimientos.map((m) => {
+            const tipoTexto = m?.tipo ? String(m.tipo).toUpperCase() : 'GENERAL';
+            return (
+              <View
+                key={m.id}
+                style={[
+                  commonStyles.surface,
+                  { padding: espaciado.md, borderRadius: 8, marginBottom: espaciado.sm },
+                ]}
+              >
+                <Text style={{ color: colores.texto, fontWeight: 'bold' }}>
+                  {tipoTexto} - {m.fecha || 'Sin fecha'}
                 </Text>
-              )}
-            </View>
-          ))
+                <Text style={{ color: colores.textoSecundario }}>
+                  {formatearDecimales(m.kilometraje || m.kilometrajeRealiz || 0)} km | \$
+                  {formatearDecimales(m.costo)}
+                </Text>
+                {(m.notas || m.descripcion) && (
+                  <Text
+                    style={{
+                      color: colores.textoSecundario,
+                      fontStyle: 'italic',
+                      marginTop: 4,
+                    }}
+                  >
+                    "{m.notas || m.descripcion}"
+                  </Text>
+                )}
+              </View>
+            );
+          })
         )}
       </View>
 

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -16,6 +15,7 @@ import RegisterScreen from '../modules/auth/screens/RegisterScreen';
 import OdometroScreen from '../modules/odometro/screens/OdometroScreen';
 import ReportesScreen from '../modules/reportes/screens/ReportesScreen';
 import HistorialMantenimientoScreen from '../modules/mantenimientos/screens/HistorialMantenimientosScreen';
+import { VehiculoDetalleScreen } from '../modules/vehiculos/screens/VehiculoDetalleScreen'; // 👈 1. Importación agregada
 import NotificacionesManager from '../modules/notificaciones/components/NotificacionesManager';
 
 import TabNavigator from './TabNavigator';
@@ -87,6 +87,10 @@ export default function AppNavigator() {
             <Stack.Screen
               name="TabNavigator"
               component={TabNavigator}
+            />
+            <Stack.Screen
+              name="VehiculoDetalleScreen"
+              component={VehiculoDetalleScreen}
             />
             <Stack.Screen
               name="Odometro"

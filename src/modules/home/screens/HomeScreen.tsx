@@ -1,30 +1,16 @@
-
 import React from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { shallowEqual } from 'react-redux';
-import { Wrench, CarFront } from 'lucide-react-native';
+import { Wrench, CarFront, ShieldCheck } from 'lucide-react-native';
 
 import { useAppSelector } from '@/redux/hooks';
-import { commonStyles, colores, espaciado } from '@/theme';
+import { commonStyles, colores } from '@/theme';
 
 export const HomeScreen = ({ navigation }: any) => {
-  const insets = useSafeAreaInsets();
+  const vehiculos = useAppSelector((state) => state.vehiculos.vehiculos);
 
-  // Obtener todos los vehículos
-  const vehiculos = useAppSelector(
-    (state) => state.vehiculos.vehiculos
-  );
-
-  // Obtener los 5 mantenimientos más recientes
   const mantenimientosRecientes = useAppSelector((state) => {
     const lista = [...state.mantenimientos.mantenimientos];
-
     return lista
       .sort((a: any, b: any) => {
         const fechaA = new Date(a.fecha || 0).getTime();
@@ -34,50 +20,33 @@ export const HomeScreen = ({ navigation }: any) => {
       .slice(0, 5);
   }, shallowEqual);
 
-  // Obtener nombre del vehículo según su ID
   const obtenerNombreVehiculo = (vehiculoId: string) => {
-    const vehiculo = vehiculos.find(
-      (v) => v.id === vehiculoId
-    );
+    const vehiculo = vehiculos.find((v) => v.id === vehiculoId);
+    return vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : 'Vehículo';
+  };
 
-    return vehiculo
-      ? `${vehiculo.marca} ${vehiculo.modelo}`
-      : 'Vehículo';
+  const formatearNumero = (num: number) => {
+    return num.toFixed(1).replace(',', '.');
   };
 
   return (
-    <View
-      style={[
-        commonStyles.containerScreen,
-        { paddingTop: insets.top + espaciado.sm },
-      ]}
-    >
-      {/* Encabezado de mantenimientos */}
+    <View style={commonStyles.containerScreen}>
       <View style={commonStyles.homeSeccionHeader}>
         <View style={commonStyles.homeTituloFila}>
-          <Wrench
-            size={21}
-            color={colores.primario}
-            strokeWidth={2}
-          />
-
-          <Text style={commonStyles.homeSeccionTitulo}>
-            Mantenimientos Recientes
-          </Text>
+          <Wrench size={21} color={colores.primario} strokeWidth={2} />
+          <Text style={commonStyles.homeSeccionTitulo}>Mantenimientos Recientes</Text>
         </View>
       </View>
 
-      {/* Lista de mantenimientos */}
       <View style={commonStyles.homeListaContainer}>
         {mantenimientosRecientes.length === 0 ? (
-          <View
-            style={[
-              commonStyles.surface,
-              commonStyles.homeEmptyBox,
-            ]}
-          >
+          <View style={[commonStyles.surface, commonStyles.homeEmptyBox, { gap: 12 }]}>
+            <ShieldCheck size={48} color={colores.gris} />
+            <Text style={[commonStyles.heading, { textAlign: 'center' }]}>
+              Bienvenido a Safe Engine
+            </Text>
             <Text style={commonStyles.homeEmptyTexto}>
-              No hay mantenimientos registrados recientemente.
+              No hay mantenimientos registrados aún. Dirígete a la pestaña de Vehículos para agregar tu primer automóvil y llevar un control detallado.
             </Text>
           </View>
         ) : (
@@ -89,82 +58,43 @@ export const HomeScreen = ({ navigation }: any) => {
             renderItem={({ item }: { item: any }) => (
               <TouchableOpacity
                 activeOpacity={0.8}
-                style={[
-                  commonStyles.surface,
-                  commonStyles.homeCardRecent,
-                ]}
+                style={[commonStyles.surface, commonStyles.homeCardRecent]}
                 onPress={() => {
-                  navigation.getParent()?.navigate(
-                    'HistorialMantenimientoScreen',
-                    {
-                      vehiculoId: item.vehiculoId,
-                      vehiculoNombre: obtenerNombreVehiculo(
-                        item.vehiculoId
-                      ),
-                    }
-                  );
+                  navigation.getParent()?.navigate('HistorialMantenimientoScreen', {
+                    vehiculoId: item.vehiculoId,
+                    vehiculoNombre: obtenerNombreVehiculo(item.vehiculoId),
+                  });
                 }}
               >
-                {/* Vehículo y fecha */}
                 <View style={commonStyles.homeCardHeader}>
                   <View style={commonStyles.homeVehiculoFila}>
-                    <CarFront
-                      size={17}
-                      color={colores.primario}
-                      strokeWidth={2}
-                    />
-
-                    <Text
-                      style={commonStyles.homeVehiculoNombre}
-                      numberOfLines={1}
-                    >
+                    <CarFront size={17} color={colores.primario} strokeWidth={2} />
+                    <Text style={commonStyles.homeVehiculoNombre} numberOfLines={1}>
                       {obtenerNombreVehiculo(item.vehiculoId)}
                     </Text>
                   </View>
-
-                  <Text style={commonStyles.homeFecha}>
-                    {item.fecha ||
-                      new Date().toLocaleDateString()}
-                  </Text>
+                  <Text style={commonStyles.homeFecha}>{item.fecha}</Text>
                 </View>
 
-                {/* Tipo de mantenimiento */}
                 <Text style={commonStyles.homeTipoMantenimiento}>
-                  {item.tipo ||
-                    item.titulo ||
-                    'Mantenimiento General'}
+                  {(item.tipo || 'Mantenimiento General').toUpperCase()}
                 </Text>
 
-                {/* Descripción */}
-                <Text
-                  style={commonStyles.homeDescripcion}
-                  numberOfLines={2}
-                >
-                  {item.descripcion ||
-                    item.notas ||
-                    'Sin detalle registrado.'}
+                <Text style={commonStyles.homeDescripcion} numberOfLines={2}>
+                  {item.descripcion || item.notas || 'Sin detalle registrado.'}
                 </Text>
 
-                {/* Kilometraje y costo */}
                 <View style={commonStyles.homeCardFooter}>
                   <Text style={commonStyles.homeFooterItem}>
                     Km:{' '}
                     <Text style={commonStyles.homeBold}>
-                      {(
-                        item.kilometrajeRealiz ??
-                        item.kilometrajeActual ??
-                        0
-                      ).toLocaleString()}{' '}
-                      km
+                      {formatearNumero(item.kilometraje || item.kilometrajeRealiz || 0)} km
                     </Text>
                   </Text>
-
                   {item.costo ? (
                     <Text style={commonStyles.homeFooterItem}>
                       Costo:{' '}
-                      <Text style={commonStyles.homeBold}>
-                        ${item.costo}
-                      </Text>
+                      <Text style={commonStyles.homeBold}>\${formatearNumero(item.costo)}</Text>
                     </Text>
                   ) : null}
                 </View>

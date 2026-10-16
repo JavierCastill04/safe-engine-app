@@ -5,20 +5,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ScrollView,
-  Switch,
-  Platform,
+  Alert,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
-import { X, Calendar as CalendarIcon, Save } from 'lucide-react-native';
-import { commonStyles, colores, espaciado } from '@/theme';
-import type { TipoMantenimiento, Mantenimiento } from '@/types';
-import { OpcionesTipoMantenimiento } from '@/modules/mantenimientos/utils/MantenimientosUtils';
 import { useAppDispatch } from '@/redux/hooks';
 import { agregarMantenimiento } from '@/redux/slices/mantenimientoSlice';
-import { actualizarKilometraje } from '@/redux/slices/vehiculoSlice';
+import { commonStyles, colores } from '@/theme';
+import type { TipoMantenimiento } from '@/types';
 
 interface Props {
   visible: boolean;
@@ -35,279 +28,168 @@ export const MantenimientoFormModal: React.FC<Props> = ({
 }) => {
   const dispatch = useAppDispatch();
 
-  // Campos del formulario
-  const [fecha, setFecha] = useState<Date>(new Date());
-  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
-  const [kilometraje, setKilometraje] = useState<string>(kilometrajeActualVehiculo.toString());
   const [tipo, setTipo] = useState<TipoMantenimiento>('aceite');
-  const [costo, setCosto] = useState<string>('');
-  const [notas, setNotas] = useState<string>('');
+  const [costo, setCosto] = useState('');
+  const [notas, setNotas] = useState('');
+  const [intervaloKm, setIntervaloKm] = useState('5000');
+  const [siguienteFecha, setSiguienteFecha] = useState('');
 
-  // Detalles opcionales por tipo
-  const [tipoAceite, setTipoAceite] = useState<string>('5W-30 Sintético');
-  const [filtroCambiado, setFiltroCambiado] = useState<boolean>(true);
-  const [frenosDelanteros, setFrenosDelanteros] = useState<boolean>(true);
-  const [frenosTraseros, setFrenosTraseros] = useState<boolean>(false);
-  const [presionPSI, setPresionPSI] = useState<string>('32');
-  const [rotacionRealizada, setRotacionRealizada] = useState<boolean>(true);
-  const [voltajeBateria, setVoltajeBateria] = useState<string>('12.6');
+  const handleGuardar = async () => {
+    try {
+      // Limpieza segura de entradas numéricas
+      const costoLimpio = String(costo || '0').replace(',', '.');
+      const intervaloLimpio = String(intervaloKm || '5000').replace(',', '.');
 
-  const handleGuardar = () => {
-    const kmNumero = parseInt(kilometraje, 10);
-    const costoNumero = parseFloat(costo);
+      const costoNum = parseFloat(costoLimpio);
+      const intervaloKmNum = parseFloat(intervaloLimpio);
 
-    if (isNaN(kmNumero) || kmNumero <= 0) {
-      alert('Ingresa un kilometraje válido.');
-      return;
+      if (isNaN(costoNum) || costoNum < 0) {
+        Alert.alert('Error', 'Ingresa un costo válido.');
+        return;
+      }
+
+      const kmRealizado = typeof kilometrajeActualVehiculo === 'number' ? kilometrajeActualVehiculo : 0;
+      const kmIntervaloValido = isNaN(intervaloKmNum) || intervaloKmNum <= 0 ? 5000 : intervaloKmNum;
+      const siguienteKm = kmRealizado + kmIntervaloValido;
+
+      // Creación del objeto payload asegurando que no existan campos undefined
+      const nuevoMantenimiento = {
+        vehiculoId: String(vehiculoId),
+        fecha: new Date().toISOString().split('T')[0],
+        kilometraje: kmRealizado,
+        kilometrajeRealiz: kmRealizado,
+        tipo: tipo || 'general',
+        costo: costoNum,
+        notas: String(notas || ''),
+        descripcion: String(notas || ''),
+        intervaloKm: kmIntervaloValido,
+        siguienteMantenimientoKm: siguienteKm,
+        siguienteMantenimientoFecha: siguienteFecha.trim() ? siguienteFecha.trim() : undefined,
+        detallesEspecificos: {},
+      };
+
+      // Despachar a Redux
+      dispatch(agregarMantenimiento(nuevoMantenimiento));
+
+      // Limpiar formulario y cerrar modal
+      setCosto('');
+      setNotas('');
+      setIntervaloKm('5000');
+      setSiguienteFecha('');
+      onClose();
+    } catch (error) {
+      console.error('Error al guardar mantenimiento:', error);
+      Alert.alert('Error', 'Ocurrió un problema al guardar el registro.');
     }
-
-    if (isNaN(costoNumero) || costoNumero < 0) {
-      alert('Ingresa un costo válido.');
-      return;
-    }
-
-    const detallesEspecificos: Mantenimiento['detallesEspecificos'] = {};
-
-    if (tipo === 'aceite') {
-      detallesEspecificos.tipoAceite = tipoAceite;
-      detallesEspecificos.filtroCambiado = filtroCambiado;
-    } else if (tipo === 'frenos') {
-      detallesEspecificos.frenosDelanteros = frenosDelanteros;
-      detallesEspecificos.frenosTraseros = frenosTraseros;
-    } else if (tipo === 'neumaticos') {
-      detallesEspecificos.presionPSI = parseFloat(presionPSI) || 0;
-      detallesEspecificos.rotacionRealizada = rotacionRealizada;
-    } else if (tipo === 'bateria') {
-      detallesEspecificos.voltajeBateria = parseFloat(voltajeBateria) || 0;
-    }
-
-    dispatch(
-      agregarMantenimiento({
-        vehiculoId,
-        fecha: fecha.toISOString().split('T')[0],
-        kilometraje: kmNumero,
-        tipo,
-        costo: costoNumero,
-        notas,
-        detallesEspecificos,
-      })
-    );
-
-    if (kmNumero > kilometrajeActualVehiculo) {
-      dispatch(actualizarKilometraje({ id: vehiculoId, nuevoKilometraje: kmNumero }));
-    }
-
-    onClose();
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={commonStyles.modalOverlay}>
         <View style={commonStyles.modal}>
-          <View style={styles.header}>
-            <Text style={commonStyles.heading}>Registrar Servicio</Text>
-            <TouchableOpacity onPress={onClose}>
-              <X color={colores.blanco} size={24} />
-            </TouchableOpacity>
-          </View>
+          <ScrollView keyboardShouldPersistTaps="handled">
+            <Text style={commonStyles.title}>Registrar Mantenimiento</Text>
 
-          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
-            {/* Fecha */}
-            <Text style={commonStyles.label}>Fecha del Mantenimiento</Text>
-            <TouchableOpacity
-              style={[commonStyles.input, styles.datePickerBtn]}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <CalendarIcon color={colores.enfasis} size={20} />
-              <Text style={commonStyles.text}>{fecha.toISOString().split('T')[0]}</Text>
-            </TouchableOpacity>
-
-            {showDatePicker && (
-              <DateTimePicker
-                value={fecha}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (selectedDate) setFecha(selectedDate);
-                }}
-              />
-            )}
-
-            {/* Kilometraje */}
             <View style={commonStyles.inputView}>
-              <Text style={commonStyles.label}>Kilometraje al realizar servicio</Text>
-              <TextInput
-                style={commonStyles.input}
-                keyboardType="numeric"
-                value={kilometraje}
-                onChangeText={setKilometraje}
-                placeholder="Ej. 45000"
-                placeholderTextColor={colores.gris}
-              />
+              <Text style={commonStyles.label}>Tipo de Mantenimiento</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {(['aceite', 'frenos', 'neumaticos', 'bateria', 'general'] as TipoMantenimiento[]).map(
+                  (item) => (
+                    <TouchableOpacity
+                      key={item}
+                      style={{
+                        paddingVertical: 6,
+                        paddingHorizontal: 12,
+                        borderRadius: 6,
+                        backgroundColor:
+                          tipo === item ? colores.primario : colores.superficie,
+                        borderWidth: 1,
+                        borderColor: colores.borde,
+                      }}
+                      onPress={() => setTipo(item)}
+                    >
+                      <Text
+                        style={{
+                          color: colores.blanco,
+                          fontSize: 12,
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {item}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                )}
+              </View>
             </View>
 
-            {/* Tipo de Servicio */}
-            <Text style={commonStyles.label}>Tipo de Servicio</Text>
-            <View style={[commonStyles.input, { paddingVertical: 0 }]}>
-              <Picker
-                selectedValue={tipo}
-                onValueChange={(itemValue) => setTipo(itemValue as TipoMantenimiento)}
-                dropdownIconColor={colores.enfasis}
-                style={{ color: colores.texto }}
-              >
-                {OpcionesTipoMantenimiento.map((opcion) => (
-                  <Picker.Item key={opcion.value} label={opcion.label} value={opcion.value} />
-                ))}
-              </Picker>
-            </View>
-
-            {/* Campos Dinámicos */}
-            <View style={styles.dynamicContainer}>
-              {tipo === 'aceite' && (
-                <>
-                  <Text style={commonStyles.label}>Marca / Especificación de Aceite</Text>
-                  <TextInput
-                    style={commonStyles.input}
-                    value={tipoAceite}
-                    onChangeText={setTipoAceite}
-                    placeholder="Ej. Mobil 1 5W-30"
-                    placeholderTextColor={colores.gris}
-                  />
-                  <View style={styles.switchRow}>
-                    <Text style={commonStyles.text}>¿Filtro de aceite cambiado?</Text>
-                    <Switch
-                      value={filtroCambiado}
-                      onValueChange={setFiltroCambiado}
-                      trackColor={{ false: colores.gris, true: colores.enfasis }}
-                    />
-                  </View>
-                </>
-              )}
-
-              {tipo === 'frenos' && (
-                <>
-                  <View style={styles.switchRow}>
-                    <Text style={commonStyles.text}>Frenos Delanteros</Text>
-                    <Switch
-                      value={frenosDelanteros}
-                      onValueChange={setFrenosDelanteros}
-                      trackColor={{ false: colores.gris, true: colores.enfasis }}
-                    />
-                  </View>
-                  <View style={styles.switchRow}>
-                    <Text style={commonStyles.text}>Frenos Traseros</Text>
-                    <Switch
-                      value={frenosTraseros}
-                      onValueChange={setFrenosTraseros}
-                      trackColor={{ false: colores.gris, true: colores.enfasis }}
-                    />
-                  </View>
-                </>
-              )}
-
-              {tipo === 'neumaticos' && (
-                <>
-                  <Text style={commonStyles.label}>Presión PSI Calibrada</Text>
-                  <TextInput
-                    style={commonStyles.input}
-                    keyboardType="numeric"
-                    value={presionPSI}
-                    onChangeText={setPresionPSI}
-                  />
-                  <View style={styles.switchRow}>
-                    <Text style={commonStyles.text}>¿Rotación de llantas realizada?</Text>
-                    <Switch
-                      value={rotacionRealizada}
-                      onValueChange={setRotacionRealizada}
-                      trackColor={{ false: colores.gris, true: colores.enfasis }}
-                    />
-                  </View>
-                </>
-              )}
-
-              {tipo === 'bateria' && (
-                <>
-                  <Text style={commonStyles.label}>Voltaje Medido (V)</Text>
-                  <TextInput
-                    style={commonStyles.input}
-                    keyboardType="numeric"
-                    value={voltajeBateria}
-                    onChangeText={setVoltajeBateria}
-                  />
-                </>
-              )}
-            </View>
-
-            {/* Costo */}
             <View style={commonStyles.inputView}>
               <Text style={commonStyles.label}>Costo ($)</Text>
               <TextInput
                 style={commonStyles.input}
-                keyboardType="decimal-pad"
-                value={costo}
-                onChangeText={setCosto}
                 placeholder="0.00"
                 placeholderTextColor={colores.gris}
+                keyboardType="numeric"
+                value={costo}
+                onChangeText={setCosto}
               />
             </View>
 
-            {/* Notas */}
             <View style={commonStyles.inputView}>
-              <Text style={commonStyles.label}>Notas adicionales</Text>
+              <Text style={commonStyles.label}>Intervalo para siguiente cambio (km)</Text>
               <TextInput
-                style={[commonStyles.input, { height: 70, textAlignVertical: 'top' }]}
+                style={commonStyles.input}
+                placeholder="Ej: 5000"
+                placeholderTextColor={colores.gris}
+                keyboardType="numeric"
+                value={intervaloKm}
+                onChangeText={setIntervaloKm}
+              />
+            </View>
+
+            <View style={commonStyles.inputView}>
+              <Text style={commonStyles.label}>Próxima fecha estimada (Opcional, AAAA-MM-DD)</Text>
+              <TextInput
+                style={commonStyles.input}
+                placeholder="2027-01-15"
+                placeholderTextColor={colores.gris}
+                value={siguienteFecha}
+                onChangeText={setSiguienteFecha}
+              />
+            </View>
+
+            <View style={commonStyles.inputView}>
+              <Text style={commonStyles.label}>Notas o Descripción</Text>
+              <TextInput
+                style={[commonStyles.input, { height: 70 }]}
+                placeholder="Detalles sobre repuestos o trabajo realizado..."
+                placeholderTextColor={colores.gris}
                 multiline
-                numberOfLines={3}
                 value={notas}
                 onChangeText={setNotas}
-                placeholder="Observaciones de la revisión..."
-                placeholderTextColor={colores.gris}
               />
             </View>
+
+            <View style={commonStyles.modalButtons}>
+              <TouchableOpacity
+                style={commonStyles.modalButtonCancelar}
+                onPress={onClose}
+              >
+                <Text style={commonStyles.modalButtonCancelarText}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={commonStyles.modalButton}
+                onPress={handleGuardar}
+              >
+                <Text style={commonStyles.buttonText}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
-
-          {/* Botones de Acción */}
-          <View style={commonStyles.modalButtons}>
-            <TouchableOpacity
-              style={commonStyles.modalButtonCancelar}
-              onPress={onClose}
-            >
-              <Text style={commonStyles.modalButtonCancelarText}>Cancelar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={commonStyles.modalButton} onPress={handleGuardar}>
-              <Save color={colores.blanco} size={18} />
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
     </Modal>
   );
 };
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: espaciado.md,
-  },
-  datePickerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: espaciado.md,
-  },
-  dynamicContainer: {
-    backgroundColor: colores.fondo,
-    borderRadius: 8,
-    padding: espaciado.md,
-    marginVertical: espaciado.sm,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: espaciado.sm,
-  },
-});
+export default MantenimientoFormModal;

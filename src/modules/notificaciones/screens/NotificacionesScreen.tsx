@@ -1,186 +1,92 @@
-
-import React, { useCallback, useMemo, useState } from 'react';
-import {
-  ScrollView,
-  Text,
-  View,
-  RefreshControl,
-} from 'react-native';
-
-import {
-  Bell,
-  CheckCircle,
-  Info,
-  AlertTriangle,
-} from 'lucide-react-native';
-
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, FlatList, RefreshControl } from 'react-native';
+import { Bell, AlertTriangle, Clock, CheckCircle } from 'lucide-react-native';
 
 import { useAppSelector } from '@/redux/hooks';
 import { commonStyles, colores } from '@/theme';
+import { evaluarNotificacionesMantenimiento } from '../utils/NotificacionesUtils';
 
-import NotificacionesCard from '../components/NotificacionesCard';
-import { obtenerNotificaciones } from '../utils/NotificacionesUtils';
-
-export default function NotificacionesScreen() {
-  const vehiculos = useAppSelector(
-    (state) => state.vehiculos.vehiculos
-  );
-
-  const mantenimientos = useAppSelector(
-    (state) => state.mantenimientos.mantenimientos
-  );
-
-  const [actualizacion, setActualizacion] = useState(0);
+export const NotificacionesScreen = () => {
   const [refrescando, setRefrescando] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      setActualizacion((valor) => valor + 1);
-    }, [])
-  );
+  const vehiculos = useAppSelector((state) => state.vehiculos.vehiculos);
+  const mantenimientos = useAppSelector((state) => state.mantenimientos.mantenimientos);
 
-  const notificaciones = useMemo(
-    () => obtenerNotificaciones(vehiculos, mantenimientos),
-    [vehiculos, mantenimientos, actualizacion]
-  );
+  const notificaciones = evaluarNotificacionesMantenimiento(vehiculos, mantenimientos);
 
-  const actualizarNotificaciones = useCallback(() => {
+  const alRefrescar = useCallback(() => {
     setRefrescando(true);
-    setActualizacion((valor) => valor + 1);
-    setRefrescando(false);
+    setTimeout(() => {
+      setRefrescando(false);
+    }, 800);
   }, []);
-
-  const avisosVencidos = notificaciones.filter(
-    (notificacion) => notificacion.estado === 'vencido'
-  ).length;
 
   return (
     <View style={commonStyles.containerScreen}>
-      <Text
-        style={[
-          commonStyles.title,
-          commonStyles.notificacionesTitulo,
-        ]}
-      >
-
-      </Text>
-
-      {/* Introducción */}
-      <View
-        style={[
-          commonStyles.card,
-          commonStyles.notificacionesIntroduccion,
-        ]}
-      >
-        <View style={commonStyles.notificacionesIntroduccionEncabezado}>
-          <Info color={colores.azulClaro} size={19} />
-
-          <Text style={commonStyles.cardTitle}>
-            Estado de tus vehículos
-          </Text>
-        </View>
-
-        <Text
-          style={[
-            commonStyles.secondaryText,
-            commonStyles.notificacionesDescripcion,
-          ]}
-        >
-          Consulta los próximos servicios y los mantenimientos
-          pendientes de tus vehículos.
-        </Text>
-      </View>
-
-      {/* Resumen */}
-      <View
-        style={[
-          commonStyles.card,
-          commonStyles.notificacionesResumen,
-        ]}
-      >
-        <View style={commonStyles.notificacionesIconoEncabezado}>
-  <Bell color={colores.azulClaro} size={22} />
-</View>
-
-        <View style={commonStyles.notificacionesResumenContenido}>
-          <Text
-            style={[
-              commonStyles.text,
-              commonStyles.notificacionesResumenTexto,
-            ]}
-          >
-            Avisos pendientes: {notificaciones.length}
-          </Text>
-
-          {avisosVencidos > 0 && (
-            <View style={commonStyles.notificacionesResumenVencidosFila}>
-              <AlertTriangle color={colores.gris} size={16} />
-
-              <Text
-                style={[
-                  commonStyles.text,
-                  commonStyles.notificacionesResumenVencidos,
-                ]}
-              >
-                Mantenimientos vencidos: {avisosVencidos}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      {/* Lista de notificaciones */}
-      <ScrollView
+      <FlatList
+        data={notificaciones}
+        keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={commonStyles.notificacionesLista}
+        contentContainerStyle={
+          notificaciones.length === 0
+            ? { flexGrow: 1, justifyContent: 'center', alignItems: 'center' }
+            : commonStyles.notificacionesLista
+        }
         refreshControl={
           <RefreshControl
             refreshing={refrescando}
-            onRefresh={actualizarNotificaciones}
+            onRefresh={alRefrescar}
+            tintColor={colores.primario}
+            colors={[colores.primario]}
+            progressViewOffset={10}
           />
         }
-      >
-        {notificaciones.length === 0 ? (
-          <View
-            style={[
-              commonStyles.card,
-              commonStyles.notificacionesEstadoVacio,
-            ]}
-          >
-            <CheckCircle
-              color={colores.azulClaro}
-              size={30}
-            />
-
-            <Text
-              style={[
-                commonStyles.cardTitle,
-                commonStyles.notificacionesEstadoVacioTitulo,
-              ]}
-            >
-              No hay mantenimientos próximos
+        ListEmptyComponent={
+          <View style={[commonStyles.surface, commonStyles.notificacionesEstadoVacio]}>
+            <CheckCircle size={52} color={colores.primario} />
+            <Text style={[commonStyles.title, commonStyles.notificacionesEstadoVacioTitulo]}>
+              Todo al día
             </Text>
-
             <Text
               style={[
                 commonStyles.secondaryText,
                 commonStyles.notificacionesEstadoVacioDescripcion,
               ]}
             >
-              No se encontraron mantenimientos próximos o
-              vencidos entre los servicios registrados.
+              No tienes alertas pendientes de mantenimiento para tus vehículos.
             </Text>
           </View>
-        ) : (
-          notificaciones.map((notificacion) => (
-            <NotificacionesCard
-              key={notificacion.id}
-              notificacion={notificacion}
-            />
-          ))
+        }
+        renderItem={({ item }) => (
+          <View
+            style={[
+              commonStyles.surface,
+              commonStyles.notificacionesTarjeta,
+              {
+                borderLeftWidth: 4,
+                borderLeftColor: item.tipo === 'vencido' ? colores.rojo : colores.primario,
+              },
+            ]}
+          >
+            <View style={commonStyles.notificacionesEncabezado}>
+              {item.tipo === 'vencido' ? (
+                <AlertTriangle size={22} color={colores.rojo} />
+              ) : (
+                <Clock size={22} color={colores.primario} />
+              )}
+              <View style={commonStyles.notificacionesEncabezadoTexto}>
+                <Text style={[commonStyles.heading, commonStyles.notificacionesTarjetaTitulo]}>
+                  {item.titulo}
+                </Text>
+                <Text style={commonStyles.secondaryText}>{item.vehiculoNombre}</Text>
+              </View>
+            </View>
+            <Text style={commonStyles.text}>{item.mensaje}</Text>
+          </View>
         )}
-      </ScrollView>
+      />
     </View>
   );
-}
+};
+
+export default NotificacionesScreen;

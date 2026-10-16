@@ -8,6 +8,10 @@ export type RootStackParamList = {
     vehiculoId: string;
     vehiculoNombre: string;
   };
+
+  VehiculoDetalleScreen: { vehiculoId: string };
+
+  
 };
 export type TabNavigatorParamList = {
   Home: undefined;
