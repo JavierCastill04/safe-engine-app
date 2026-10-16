@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { AlertCircle, Clock, CheckCircle2 } from 'lucide-react-native';
+import { AlertCircle, Clock } from 'lucide-react-native';
+
 import { commonStyles, colores, espaciado } from '@/theme';
 import type { Mantenimiento } from '@/types';
 
@@ -13,75 +14,85 @@ export const ProximosMantenimientosCard: React.FC<Props> = ({
   mantenimientos,
   kilometrajeActual,
 }) => {
-  const formatearNumero = (num: number) => num.toFixed(1).replace(',', '.');
+  const formatearNumero = (num?: number) => {
+    if (typeof num !== 'number' || isNaN(num)) return '0.0';
+    return num.toFixed(1).replace(',', '.');
+  };
 
-  if (mantenimientos.length === 0) {
+  // Filtrar mantenimientos que tengan un próximo kilometraje definido
+  const proximos = mantenimientos
+    .filter((m) => typeof m.siguienteMantenimientoKm === 'number' && m.siguienteMantenimientoKm > 0)
+    .map((m) => {
+      const kmFaltantes = (m.siguienteMantenimientoKm || 0) - kilometrajeActual;
+      return { ...m, kmFaltantes };
+    })
+    .sort((a, b) => a.kmFaltantes - b.kmFaltantes)
+    .slice(0, 3); // Mostrar solo los 3 más próximos
+
+  if (proximos.length === 0) {
     return (
-      <View style={[commonStyles.surface, { padding: espaciado.md, borderRadius: 8 }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: espaciado.sm }}>
-          <CheckCircle2 size={20} color={colores.primario} />
-          <Text style={commonStyles.heading}>Próximos Mantenimientos</Text>
+      <View style={[commonStyles.surface, { padding: espaciado.md, borderRadius: 8, marginTop: espaciado.sm }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Clock size={20} color={colores.gris} />
+          <Text style={{ color: colores.textoSecundario, fontWeight: '600' }}>Próximos Servicios</Text>
         </View>
-        <Text style={[commonStyles.secondaryText, { marginTop: espaciado.xs }]}>
-          No hay mantenimientos programados. Registra el primero para habilitar alertas.
+        <Text style={{ color: colores.textoSecundario, marginTop: 8, fontSize: 13 }}>
+          No hay servicios programados próximamente.
         </Text>
       </View>
     );
   }
 
   return (
-    <View style={[commonStyles.surface, { padding: espaciado.md, borderRadius: 8, gap: espaciado.sm }]}>
-      <Text style={commonStyles.heading}>Estado y Próximas Revisiones</Text>
+    <View style={[commonStyles.surface, { padding: espaciado.md, borderRadius: 8, marginTop: espaciado.sm }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: espaciado.sm }}>
+        <AlertCircle size={20} color={colores.primario} />
+        <Text style={{ color: colores.texto, fontWeight: 'bold', fontSize: 16 }}>
+          Próximos Servicios
+        </Text>
+      </View>
 
-      {mantenimientos.map((m) => {
-        const kmRealizado = m.kilometraje || m.kilometrajeRealiz || 0;
-        const intervalo = m.intervaloKm || 5000;
-        const kmLimite = m.siguienteMantenimientoKm || (kmRealizado + intervalo);
-        const faltante = kmLimite - kilometrajeActual;
-        const esVencido = faltante <= 0;
+      <View style={{ gap: espaciado.sm }}>
+        {proximos.map((m) => {
+          const esUrgente = m.kmFaltantes <= 500; // Menos de 500km se marca en rojo/alerta
+          const tipoTexto = m.tipo ? String(m.tipo).toUpperCase() : 'GENERAL';
 
-        return (
-          <View
-            key={m.id}
-            style={{
-              padding: espaciado.sm,
-              borderRadius: 6,
-              backgroundColor: colores.fondo,
-              borderLeftWidth: 4,
-              borderLeftColor: esVencido ? colores.rojo : colores.primario,
-            }}
-          >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                {esVencido ? (
-                  <AlertCircle size={16} color={colores.rojo} />
-                ) : (
-                  <Clock size={16} color={colores.primario} />
-                )}
-                <Text style={{ color: colores.texto, fontWeight: 'bold', textTransform: 'capitalize' }}>
-                  {m.tipo}
+          return (
+            <View
+              key={`prox-${m.id}`}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                borderBottomWidth: 1,
+                borderBottomColor: colores.borde,
+                paddingBottom: 8,
+              }}
+            >
+              <View>
+                <Text style={{ color: colores.texto, fontWeight: '600' }}>
+                  {tipoTexto}
+                </Text>
+                <Text style={{ color: colores.textoSecundario, fontSize: 12 }}>
+                  A los {formatearNumero(m.siguienteMantenimientoKm)} km
                 </Text>
               </View>
 
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: 'bold',
-                  color: esVencido ? colores.rojo : colores.azulClaro,
-                }}
-              >
-                {esVencido
-                  ? `Vencido por ${formatearNumero(Math.abs(faltante))} km`
-                  : `Faltan ${formatearNumero(faltante)} km`}
-              </Text>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text
+                  style={{
+                    color: esUrgente ? colores.rojo : colores.azulClaro,
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {m.kmFaltantes > 0
+                    ? `Faltan ${formatearNumero(m.kmFaltantes)} km`
+                    : `Vencido por ${formatearNumero(Math.abs(m.kmFaltantes))} km`}
+                </Text>
+              </View>
             </View>
-
-            <Text style={{ color: colores.textoSecundario, fontSize: 12, marginTop: 4 }}>
-              Límite sugerido: {formatearNumero(kmLimite)} km
-            </Text>
-          </View>
-        );
-      })}
+          );
+        })}
+      </View>
     </View>
   );
 };
