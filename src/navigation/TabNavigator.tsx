@@ -3,22 +3,25 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Bell, Car, Settings, Home, Gauge } from 'lucide-react-native';
-import { useAppSelector } from '@/redux/hooks'; // 👈 1. Importar el hook de Redux
+
+import { useAppSelector } from '@/redux/hooks';
 import type { TabNavigatorParamList, RootStackParamList } from './types';
 import { getTabScreenOptions } from './navigationStyles';
+
 import HomeScreen from '../modules/home/screens/HomeScreen';
 import { VehiculosScreen } from '../modules/vehiculos/screens/VehiculosScreen';
 import AjustesScreen from '../modules/ajustes/screens/AjustesScreen';
-import NotificacionesScreen from '../modules/notificaciones/screens/NotificacionesScreen';
+import  NotificacionesScreen  from '../modules/notificaciones/screens/NotificacionesScreen'; // 👈 Se asegura importar la pantalla NotificacionesScreen
 import { OdometroScreen } from '../modules/odometro/screens/OdometroScreen';
+
 import { commonStyles } from '../theme/commonStyles';
 import { colores } from '../theme/colores';
+
 const Tab = createBottomTabNavigator<TabNavigatorParamList>();
 
 export default function PersonalNavigator() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { bottom } = useSafeAreaInsets();
-
 
   const tema = useAppSelector((state) => state.config?.tema || 'oscuro');
 
@@ -26,37 +29,57 @@ export default function PersonalNavigator() {
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={({ route }) => ({
-  ...getTabScreenOptions(bottom, tema),
+        ...getTabScreenOptions(bottom, tema),
 
-  headerStyle: commonStyles.navigationHeader,
-  headerTitleStyle: commonStyles.navigationHeaderTitle,
-  headerTintColor: colores.blanco,
+        headerStyle: commonStyles.navigationHeader,
+        headerTitleStyle: commonStyles.navigationHeaderTitle,
+        headerTintColor: colores.blanco,
 
-  tabBarIcon: ({ color, size }) => {
-    switch (route.name) {
-      case 'Home':
-        return <Home color={color} size={size} />;
-      case 'Vehiculos':
-        return <Car color={color} size={size} />;
-      case 'Odometro':
-        return <Gauge color={color} size={size} />;
-      case 'Notificaciones':
-        return <Bell color={color} size={size} />;
-      case 'Ajustes':
-        return <Settings color={color} size={size} />;
-      default:
-        return null;
-    }
-  },
+        tabBarIcon: ({ color, size }) => {
+          switch (route.name) {
+            case 'Home':
+              return <Home color={color} size={size} />;
+            case 'Vehiculos':
+              return <Car color={color} size={size} />;
+            case 'Odometro':
+              return <Gauge color={color} size={size} />;
+            case 'Notificaciones':
+              return <Bell color={color} size={size} />;
+            case 'Ajustes':
+              return <Settings color={color} size={size} />;
+            default:
+              return null;
+          }
+        },
 
-  animation: 'none',
-})}
+        animation: 'none',
+      })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ headerTitle: 'Panel principal' }} />
-      <Tab.Screen name="Vehiculos" component={VehiculosScreen} options={{ headerTitle: 'Vehículos registrados' }} />
-      <Tab.Screen name="Odometro" component={OdometroScreen} options={{ headerTitle: 'Odómetro en vivo' }} />
-      <Tab.Screen name="Notificaciones" component={NotificacionesScreen} options={{ headerTitle: 'Notificaciones' }} />
-      <Tab.Screen name="Ajustes" component={AjustesScreen} options={{ headerTitle: 'Ajustes de aplicación' }} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ headerTitle: 'Panel principal' }}
+      />
+      <Tab.Screen
+        name="Vehiculos"
+        component={VehiculosScreen}
+        options={{ headerTitle: 'Vehículos registrados' }}
+      />
+      <Tab.Screen
+        name="Odometro"
+        component={OdometroScreen}
+        options={{ headerTitle: 'Odómetro en vivo' }}
+      />
+      <Tab.Screen
+        name="Notificaciones"
+        component={NotificacionesScreen}
+        options={{ headerTitle: 'Notificaciones' }}
+      />
+      <Tab.Screen
+        name="Ajustes"
+        component={AjustesScreen}
+        options={{ headerTitle: 'Ajustes de aplicación' }}
+      />
     </Tab.Navigator>
   );
 }

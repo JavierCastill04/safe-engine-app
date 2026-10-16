@@ -16,9 +16,8 @@ export const OdometroScreen = () => {
     (state) => state.vehiculos.vehiculoSeleccionadoId
   );
 
-  const vehiculoActivo = vehiculos.find(
-    (v) => v.id === (vehiculoSeleccionadoId || vehiculos[0]?.id)
-  );
+  // Solución aplicada: Buscar por el ID seleccionado y, si no se encuentra o es nulo, tomar el primer vehículo del arreglo
+  const vehiculoActivo = vehiculos.find((v) => v.id === vehiculoSeleccionadoId) || vehiculos[0];
 
   const formatearNumero = (num?: number) => {
     if (typeof num !== 'number' || isNaN(num)) return '0.0';
@@ -150,7 +149,6 @@ export const OdometroScreen = () => {
             <Text style={commonStyles.buttonText}>Iniciar Viaje GPS</Text>
           </TouchableOpacity>
 
-          {/* Reemplazado buttonSecondary por una composición limpia con commonStyles.surface */}
           <TouchableOpacity
             style={[
               commonStyles.surface,
